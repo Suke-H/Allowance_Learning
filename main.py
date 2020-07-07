@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 import dataset
 import model
+from visual import visualization
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -102,7 +103,6 @@ def test(epoch):
     print("Test Acc : %.4f" % (correct/total))
     
     return correct/total
-
 
 def WAA(x,loss_list):
     w_Mom = sum(w*pow(beta,loss_list))
@@ -257,4 +257,6 @@ if __name__ == '__main__':
             train_acclist.append(train_acc)
             val_acclist.append(val_acc)
             test_acclist.append(test_acc)
+
+        visualization(Model, x_train, flip_y_train, "data/")
         

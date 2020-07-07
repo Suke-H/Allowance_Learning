@@ -4,6 +4,20 @@ import torch.nn.functional as F
 
 num_classes = 10
 
+# モデル定義
+class SimpleNet(torch.nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.fc1 = torch.nn.Linear(2, 64)
+        self.fc2 = torch.nn.Linear(64, 4)
+ 
+    def forward(self, x):
+        # テンソルのリサイズ: (N, 1, 2, 1) --> (N, 2)
+        # x = x.view(-1, 2)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
 class Cifar10Model(nn.Module):
     def __init__(self):
         super(Cifar10Model, self).__init__()
@@ -19,7 +33,6 @@ class Cifar10Model(nn.Module):
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.25)
         self.dropout3 = nn.Dropout2d(0.5)
- 
  
     def forward(self, x):
         x = F.relu(self.conv11(x))

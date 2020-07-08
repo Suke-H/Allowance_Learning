@@ -18,6 +18,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def train(model, dataloader):
     model.train()
     #scheduler.step()
+    correct = 0
+    total = 0
  
     for step, (images, labels) in enumerate(tqdm(dataloader), 1):
 
@@ -29,8 +31,11 @@ def train(model, dataloader):
         loss.backward()
         optimizer.step()
  
-        # if step % 100 == 0:
-        #     print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' % (epoch, epochs, step, steps, loss.item()))
+        _, predicted = torch.max(outputs.data, 1)
+        correct += (predicted == labels).sum().item()
+        total += labels.size(0)
+ 
+    print("Train Acc : %.4f" % (correct/total))
             
 def softmax(Llist):
     exp_x = np.exp(Llist)    

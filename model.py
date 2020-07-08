@@ -9,7 +9,7 @@ class SimpleNet(torch.nn.Module):
     def __init__(self):
         super(SimpleNet, self).__init__()
         self.fc1 = torch.nn.Linear(2, 64)
-        self.fc2 = torch.nn.Linear(64, 4)
+        self.fc2 = torch.nn.Linear(64, 2)
  
     def forward(self, x):
         # テンソルのリサイズ: (N, 1, 2, 1) --> (N, 2)

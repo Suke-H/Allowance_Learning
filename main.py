@@ -204,7 +204,8 @@ if __name__ == '__main__':
     # val_ratio = 0.1
     # noise_ratio = 0.2
     acc = 0.75
-    lr = 10**(-4)
+    # lr = 10**(-4)
+    lr = 10**(-2)
 
     x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset()
     n = len(x_train)
@@ -215,7 +216,8 @@ if __name__ == '__main__':
     # Model = model.ResNet18().to(device)
     Model = model.SimpleNet().to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(Model.parameters(), lr=lr)
+    optimizer = optim.SGD(Model.parameters(), lr=0.1)
+    # optimizer = optim.Adam(Model.parameters(), lr=lr)
 
     train_acclist = []
     val_acclist = []
@@ -262,5 +264,6 @@ if __name__ == '__main__':
             val_acclist.append(val_acc)
             test_acclist.append(test_acc)
 
-            visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/")
+            # 可視化
+            visualization(Model, x_train[:100], flip_y_train[:100], virtual_loss[:100], epoch, "data/result/try4/")
         

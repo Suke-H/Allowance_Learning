@@ -49,8 +49,8 @@ def visualize_classify(ax1, net, grid_num=100):
 
     grid0, grid1 = grid_x[index0], grid_x[index1]
 
-    ax1.plot(grid0[:, 0],grid0[:, 1],marker=".",linestyle="None",color="gray", label=label0)
-    ax1.plot(grid1[:, 0],grid1[:, 1],marker=".",linestyle="None",color="black", label=label1)
+    ax1.plot(grid0[:, 0],grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0)
+    ax1.plot(grid1[:, 0],grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1)
 
     # xy軸
     ax1.plot([-1, 1], [0, 0], marker=".",color="black")
@@ -92,9 +92,15 @@ def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
     #     ax.plot(i,j,'o', color=cm(loss[k]))
     #     ax.annotate(y[k], xy=(i, j))
 
+    true_y = np.where(x[:, 0] >= 0, 0, 1)
+
     for i in range(n):
         ax1.plot(x[i, 0],x[i, 1],'o', color=cm(loss[i]))
-        ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]))
+
+        if true_y[i] == y[i]:
+            ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]))
+        else:
+            ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]), color="red")
 
     # color-barを表示
     gradient = np.linspace(0, 1, cm.N)
@@ -102,9 +108,8 @@ def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
     
     ax2.imshow(gradient_array, aspect='auto', cmap=cm)
     ax2.set_axis_off()
-
-    print("loss_max(Red): {}, loss_min(Blue): {}".format(loss_max, loss_min))
-
+ 
+    ax2.set_title("loss_min(Blue): {:.2f}  ~   loss_max(Red): {:.2f}".format(loss_min, loss_max))
 
 def visualization(net, x, y, loss, epoch, path):
     """
@@ -133,4 +138,3 @@ def visualization(net, x, y, loss, epoch, path):
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")
     plt.close()
-    # plt.clf()

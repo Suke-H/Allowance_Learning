@@ -8,12 +8,23 @@ num_classes = 10
 class SimpleNet(torch.nn.Module):
     def __init__(self):
         super(SimpleNet, self).__init__()
-        self.fc1 = torch.nn.Linear(2, 64)
-        self.fc2 = torch.nn.Linear(64, 2)
+        self.fc1 = torch.nn.Linear(2, 20)
+
+        self.fc2 = torch.nn.Linear(20, 20)
+        self.fc3 = torch.nn.Linear(20, 20)
+        self.fc4 = torch.nn.Linear(20, 20)
+        self.fc5 = torch.nn.Linear(20, 20)
+
+        self.fc6 = torch.nn.Linear(20, 2)
  
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        return self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        
+        return self.fc6(x)
 
 class Cifar10Model(nn.Module):
     def __init__(self):

@@ -75,15 +75,15 @@ def cal_loss(model, dataloader):
     
     return np.array(loss_list),train_acc
 
-def eval(epoch):
-    Model.eval()
+def eval(model, dataloader):
+    model.eval()
     correct = 0
     total = 0
     with torch.no_grad():
-        for (images, labels) in dataloader_val:
+        for (images, labels) in dataloader:
             images, labels = images.to(device), labels.to(device)
  
-            outputs = Model(images)
+            outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
@@ -92,15 +92,15 @@ def eval(epoch):
     
     return correct/total
 
-def test(epoch):
-    Model.eval()
+def test(model, dataloader):
+    model.eval()
     correct = 0
     total = 0
     with torch.no_grad():
-        for (images, labels) in dataloader_test:
+        for (images, labels) in dataloader:
             images, labels = images.to(device), labels.to(device)
  
-            outputs = Model(images)
+            outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
@@ -203,10 +203,9 @@ if __name__ == '__main__':
     epochs = 50
     # val_ratio = 0.1
     # noise_ratio = 0.2
-    acc = 0.6
+    acc = 0.75
     lr = 10**(-4)
 
-    # dataloader_prob, dataloader_val, dataloader_test, x_train, y_train_rand = dataset.noisy_label_dataset(val_ratio,noise_ratio)
     x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset()
     n = len(x_train)
     k = int(n * (1-acc))
@@ -256,12 +255,12 @@ if __name__ == '__main__':
             # 損失の小さいtop-k個を選択
             xt = np.argsort(virtual_loss)[:k]
         
-            val_acc = eval(epoch)
-            test_acc = test(epoch)
+            val_acc = eval(Model, dataloader_val)
+            test_acc = test(Model, dataloader_test)
             
             train_acclist.append(train_acc)
             val_acclist.append(val_acc)
             test_acclist.append(test_acc)
 
-        visualization(Model, x_train, flip_y_train, "data/")
+            visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/")
         

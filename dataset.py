@@ -50,10 +50,6 @@ def noisy_label_dataset(val_ratio,noise_ratio):
 
     ds_test = data.TensorDataset(torch.from_numpy(x_test), torch.from_numpy(y_test))
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=1000, shuffle=True)
-
-    print(y_train)
-    print(y_train_rand)
-    a = input()
     
     return dataloader_prob, dataloader_val, dataloader_test, x_train, y_train_rand
 
@@ -112,9 +108,9 @@ def make_artificial_data(n, phase):
 
 def make_artificial_dataset():
     # データセット作成
-    train_x, train_t = make_artificial_data(10000, "train")
-    val_x, val_t = make_artificial_data(1000, "val")
-    test_x, test_t = make_artificial_data(1000, "test")
+    train_x, train_t = make_artificial_data(1000, "train")
+    val_x, val_t = make_artificial_data(100, "val")
+    test_x, test_t = make_artificial_data(100, "test")
 
     # データ保存
     np.save("data/artifact/train_x", train_x)

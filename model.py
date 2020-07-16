@@ -12,11 +12,8 @@ class SimpleNet(torch.nn.Module):
         self.fc2 = torch.nn.Linear(64, 2)
  
     def forward(self, x):
-        # テンソルのリサイズ: (N, 1, 2, 1) --> (N, 2)
-        # x = x.view(-1, 2)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        return self.fc2(x)
 
 class Cifar10Model(nn.Module):
     def __init__(self):

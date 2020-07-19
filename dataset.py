@@ -106,32 +106,89 @@ def make_artificial_data(n, phase):
 
     return np.array(dataset, dtype="float32"), np.array(labels, dtype="int")
 
-def make_artificial_dataset():
+def assign_labels(datas):
+
+    y = []
+
+    for x, y in datas:
+        if (-3/4 <= x <= -1/4) and (-1/4 <= y <= 1/4):
+            y.append(0)
+        
+        elif (1/4 <= x <= 3/4) and (-1/4 <= y <= 1/4):
+            y.append(1)
+
+        elif x >= 0:
+            y.append(0)
+
+        else:
+            y.append(1)
+
+    return np.array(y)
+
+def make_testdata(n):
+    """
+    -1 <= x, y <= 1での一様乱数により作られた2次元のデータを
+    label 0: 右
+    label 1: 左
+    の2クラスにしたデータ
+
+    """
+
+    datas = np.array([[Random(-1, 1), Random(-1, 1)] for i in range(n)])
+    labels = []
+
+    for x, y in datas:
+        # if (-3/4 <= x <= -1/4) and (-1/4 <= y <= 1/4):
+        #     labels.append(0)
+        
+        # elif (1/4 <= x <= 3/4) and (-1/4 <= y <= 1/4):
+        #     labels.append(1)
+
+        if x <= -3/4:
+            labels.append(0)
+        
+        elif 3/4 <= x:
+            labels.append(1)
+
+        elif x >= 0:
+            labels.append(0)
+
+        else:
+            labels.append(1)
+
+    return np.array(datas, dtype="float32"), np.array(labels, dtype="int")
+
+
+def make_artificial_dataset(path):
     # データセット作成
-    train_x, train_t = make_artificial_data(1000, "train")
-    val_x, val_t = make_artificial_data(100, "val")
-    test_x, test_t = make_artificial_data(100, "test")
+    # train_x, train_t = make_artificial_data(1000, "train")
+    # val_x, val_t = make_artificial_data(100, "val")
+    # test_x, test_t = make_artificial_data(100, "test")
+
+    train_x, train_t = make_testdata(1000)
+    val_x, val_t = make_testdata(100)
+    test_x, test_t = make_testdata(100)
 
     # データ保存
-    np.save("data/artifact/train_x", train_x)
-    np.save("data/artifact/train_t", train_t)
-    np.save("data/artifact/val_x", val_x)
-    np.save("data/artifact/val_t", val_t)
-    np.save("data/artifact/test_x", test_x)
-    np.save("data/artifact/test_t", test_t)
+    np.save(path + "train_x", train_x)
+    np.save(path + "train_t", train_t)
+    np.save(path + "val_x", val_x)
+    np.save(path + "val_t", val_t)
+    np.save(path + "test_x", test_x)
+    np.save(path + "test_t", test_t)
 
-def load_artifical_dataset():
+def load_artifical_dataset(path):
     # データ読み込み
-    train_x = np.load("data/artifact/train_x.npy")
-    train_t = np.load("data/artifact/train_t.npy")
-    val_x = np.load("data/artifact/val_x.npy")
-    val_t = np.load("data/artifact/val_t.npy")
-    test_x = np.load("data/artifact/test_x.npy")
-    test_t = np.load("data/artifact/test_t.npy")
+    train_x = np.load(path + "train_x.npy")
+    train_t = np.load(path + "train_t.npy")
+    val_x = np.load(path + "val_x.npy")
+    val_t = np.load(path + "val_t.npy")
+    test_x = np.load(path + "test_x.npy")
+    test_t = np.load(path + "test_t.npy")
 
     # numpy -> Dataset -> DataLoader
     ds_prob = data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_t))
-    dataloader_prob = data.DataLoader(dataset=ds_prob, batch_size=100, shuffle=False)
+    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=100, shuffle=False)
 
     ds_val = data.TensorDataset(torch.from_numpy(val_x), torch.from_numpy(val_t))
     dataloader_val = data.DataLoader(dataset=ds_val, batch_size=100, shuffle=False)
@@ -139,7 +196,8 @@ def load_artifical_dataset():
     ds_test = data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_t))
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
 
+    # return dataloader_train, dataloader_val, dataloader_test
     return train_x, train_t, dataloader_val, dataloader_test
 
 if __name__ == '__main__':
-    make_artificial_dataset()
+    make_artificial_dataset("data/test_arti2/")

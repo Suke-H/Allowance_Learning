@@ -11,11 +11,11 @@ from tqdm import tqdm
 
 import dataset
 import model
-from visual import visualization
+from visual import visualization, acc_plot
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train(model, dataloader):
+def train(model, dataloader, optimizer, criterion):
     model.train()
     #scheduler.step()
     correct = 0
@@ -73,7 +73,7 @@ def cal_loss(model, dataloader):
         
         print("Tra Acc : %.4f" % (train_acc))
     
-    return np.array(loss_list),train_acc
+    return np.array(loss_list), np.array(p_list), train_acc
 
 def eval(model, dataloader):
     model.eval()
@@ -198,26 +198,24 @@ if __name__ == '__main__':
     
     torch.manual_seed(1)
 
-    num_classes = 10
-    batch_size = 100
+    batch_size = 10
     epochs = 50
-    # val_ratio = 0.1
-    # noise_ratio = 0.2
     acc = 0.75
     # lr = 10**(-4)
     lr = 10**(-2)
 
-    x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset()
+    x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset("data/artifact/")
+    # x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset("data/test_arti/")
     n = len(x_train)
     k = int(n * (1-acc))
     eta = np.sqrt(8*np.log(n)/epochs)
     beta = np.exp(-eta)
 
-    # Model = model.ResNet18().to(device)
-    Model = model.SimpleNet().to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(Model.parameters(), lr=0.1)
-    # optimizer = optim.Adam(Model.parameters(), lr=lr)
+    # Model = model.SimpleNet().to(device)
+    Model = model.SimpleNet2().to(device)
+    Criterion = nn.CrossEntropyLoss()
+    # optimizer = optim.SGD(Model.parameters(), lr=lr)
+    Optimizer = optim.Adam(Model.parameters(), lr=lr)
 
     train_acclist = []
     val_acclist = []
@@ -248,8 +246,8 @@ if __name__ == '__main__':
                     
             ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
             dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=True)
-            train(Model, dataloader_fliped)
-            loss_list, train_acc = cal_loss(Model, dataloader_fliped)
+            train(Model, dataloader_fliped, Optimizer, Criterion)
+            loss_list, p_list, train_acc = cal_loss(Model, dataloader_fliped)
             cumulative_loss = cumulative_loss + loss_list
             perturbation = np.random.normal(0,0.00001,(n))
             virtual_loss = cumulative_loss + eta*perturbation
@@ -265,5 +263,9 @@ if __name__ == '__main__':
             test_acclist.append(test_acc)
 
             # 可視化
-            visualization(Model, x_train[:100], flip_y_train[:100], virtual_loss[:100], epoch, "data/result/try4/")
+            # visualization(Model, x_train[:100], flip_y_train[:100], virtual_loss[:100], epoch, "data/result/try6/")
+            visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
+            visualization(Model, x_train, flip_y_train, p_list, epoch, "data/result/try1/p/")
+            visualization(Model, x_train, flip_y_train, loss_list, epoch, "data/result/try1/l/")
         
+    acc_plot(train_acclist, val_acclist, test_acclist, acc, "data/result/try1/", 1)

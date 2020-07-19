@@ -4,11 +4,45 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data as data
 #import torchvision.models as models
+
 import tensorflow as tf
 import numpy as np
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+
+def acc_plot(train_accs, val_accs, test_accs, goal_acc, root_path, file_no):
+    """ 学習記録(epoch-acc)をプロット """
+
+    end_epoch = len(train_accs)
+
+    plt.figure()
+    runs = [i for i in range(1, end_epoch+1)]
+    plt.plot(runs, train_accs, label='train_acc')
+    plt.plot(runs, val_accs, label='val_acc')
+    plt.plot(runs, test_accs, label='test_acc')
+    plt.plot(runs, [goal_acc for i in range(end_epoch)], label='goal_acc')
+    plt.xlabel('epoch')
+    plt.ylabel('acc')
+    plt.xticks([i for i in range(1, end_epoch+1, 5)])
+    plt.legend()
+    plt.savefig(root_path+"acc_"+str(file_no)+".png")
+
+def acc_plot_test(train_accs, val_accs, test_accs, root_path, file_no):
+    """ 学習記録(epoch-acc)をプロット """
+
+    end_epoch = len(train_accs)
+
+    plt.figure()
+    runs = [i for i in range(1, end_epoch+1)]
+    plt.plot(runs, train_accs, label='train_acc')
+    plt.plot(runs, val_accs, label='val_acc')
+    plt.plot(runs, test_accs, label='test_acc')
+    plt.xlabel('epoch')
+    plt.ylabel('acc')
+    plt.xticks([i for i in range(1, end_epoch+1, 5)])
+    plt.legend()
+    plt.savefig(root_path+"acc_"+str(file_no)+".png")
 
 def visualize_classify(ax1, net, grid_num=100):
     """
@@ -60,7 +94,6 @@ def visualize_classify(ax1, net, grid_num=100):
     ax1.legend()
 
 
-
 def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
     """
     データをどのように斟酌したか可視化
@@ -87,18 +120,17 @@ def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
     # loss_digitの値がcolor_stepのものがあればcolor_step-1に置き換え
     loss_digit = np.where(loss_digit == color_step, color_step-1, loss_digit)
 
-    # プロット
-    # for k, (i,j) in enumerate(zip(x[:, 0], x[:, 1])):
-    #     ax.plot(i,j,'o', color=cm(loss[k]))
-    #     ax.annotate(y[k], xy=(i, j))
-
+    # 真の正解ラベル
     true_y = np.where(x[:, 0] >= 0, 0, 1)
 
+    # プロット
     for i in range(n):
         ax1.plot(x[i, 0],x[i, 1],'o', color=cm(loss[i]))
 
+        # 改変ラベルではない時
         if true_y[i] == y[i]:
             ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]))
+        # 改変ラベル
         else:
             ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]), color="red")
 
@@ -134,6 +166,30 @@ def visualization(net, x, y, loss, epoch, path):
 
     # 斟酌の可視化
     visualize_allowance(ax1, ax2, x, y, loss)
+
+    # plt.show()
+    plt.savefig(path + str(epoch) + ".png")
+    plt.close()
+
+def visualization_test(net, epoch, path):
+    """
+    Attribute
+
+    net: 学習モデル
+    path: 保存するフォルダのパス
+
+    """
+
+    # グラフ作成
+    fig = plt.figure()
+    ax1  = fig.add_axes((0.1,0.3,0.8,0.6))
+    ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
+
+    # 識別関数の可視化
+    visualize_classify(ax1, net)
+
+    # 斟酌の可視化
+    # visualize_allowance(ax1, ax2, x, y, loss)
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")

@@ -44,25 +44,30 @@ def acc_plot_test(train_accs, val_accs, test_accs, root_path, file_no):
     plt.legend()
     plt.savefig(root_path+"acc_"+str(file_no)+".png")
 
-def visualize_classify(ax1, net, grid_num=100):
+def visualize_classify(ax1, net, aabb, grid_num=100):
     """
     識別関数を可視化
 
     Attribute
-    grid_num: [0,1]の範囲でグリットを刻む回数
+    grid_num: AABBの範囲でグリットを刻む回数
+    aabb: AABB(Axis Aligned Bounding Box)の座標[xmin, xmax, ymin, ymax]
 
     """
-
     ### 格子点を入力する準備
-    grid_elem = np.linspace(-1, 1, grid_num)
+    # grid_elem = np.linspace(-1, 1, grid_num)
 
-    xx = np.array([[x for x in grid_elem] for _ in range(grid_num)])
-    xx = xx.reshape(grid_num**2)
-    yy = np.array([[y for _ in range(grid_num)] for y in grid_elem])
-    yy = yy.reshape(grid_num**2)
+    # xx = np.array([[x for x in grid_elem] for _ in range(grid_num)])
+    # xx = xx.reshape(grid_num**2)
+    # yy = np.array([[y for _ in range(grid_num)] for y in grid_elem])
+    # yy = yy.reshape(grid_num**2)
+
+    x = np.linspace(aabb[0], aabb[1], grid_num)
+    y = np.linspace(aabb[2], aabb[3], grid_num)
+
+    xx, yy = np.meshgrid(x,y)
 
     xy = np.stack([xx, yy])
-    xy = xy.T
+    xy = xy.T.reshape(grid_num**2, 2)
 
     # 入力データ
     grid_x = np.array(xy, dtype="float32")
@@ -87,8 +92,8 @@ def visualize_classify(ax1, net, grid_num=100):
     ax1.plot(grid1[:, 0],grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1)
 
     # xy軸
-    ax1.plot([-1, 1], [0, 0], marker=".",color="black")
-    ax1.plot([0, 0], [-1, 1], marker=".",color="black")
+    # ax1.plot([-1, 1], [0, 0], marker=".",color="black")
+    # ax1.plot([0, 0], [-1, 1], marker=".",color="black")
 
     # 凡例の表示
     ax1.legend()
@@ -161,8 +166,10 @@ def visualization(net, x, y, loss, epoch, path):
     ax1  = fig.add_axes((0.1,0.3,0.8,0.6))
     ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
 
+    aabb = [np.min(x[:, 0]), np.max(x[:, 0]), np.min(x[:, 1]), np.max(x[:, 1])]
+
     # 識別関数の可視化
-    visualize_classify(ax1, net)
+    visualize_classify(ax1, net, aabb)
 
     # 斟酌の可視化
     visualize_allowance(ax1, ax2, x, y, loss)

@@ -53,7 +53,7 @@ def noisy_label_dataset(val_ratio,noise_ratio):
     
     return dataloader_prob, dataloader_val, dataloader_test, x_train, y_train_rand
 
-def make_artificial_data(n, phase):
+def make_artificial_data(n, phase="train"):
     """
     -1 <= x, y <= 1での一様乱数により作られた2次元のデータを
     label 0: 右
@@ -106,25 +106,6 @@ def make_artificial_data(n, phase):
 
     return np.array(dataset, dtype="float32"), np.array(labels, dtype="int")
 
-def assign_labels(datas):
-
-    y = []
-
-    for x, y in datas:
-        if (-3/4 <= x <= -1/4) and (-1/4 <= y <= 1/4):
-            y.append(0)
-        
-        elif (1/4 <= x <= 3/4) and (-1/4 <= y <= 1/4):
-            y.append(1)
-
-        elif x >= 0:
-            y.append(0)
-
-        else:
-            y.append(1)
-
-    return np.array(y)
-
 def make_testdata(n):
     """
     -1 <= x, y <= 1での一様乱数により作られた2次元のデータを
@@ -158,16 +139,35 @@ def make_testdata(n):
 
     return np.array(datas, dtype="float32"), np.array(labels, dtype="int")
 
+def fuzzy_dataset(n):
+    # 平均(label0と1で変える)
+    mu0 = [1, 1]
+    mu1 = [-1, -1]
+    # mu0 = [3/4, 3/4]
+    # mu1 = [-3/4, -3/4]
 
-def make_artificial_dataset(path):
+    # 分散(label0と1で共通)
+    sigma = [[1, 0], [0, 1]]
+    
+    # 2次元正規乱数によりデータ生成
+    data0 = np.random.multivariate_normal(mu0, sigma, int(n // 2))
+    data1 = np.random.multivariate_normal(mu1, sigma, int(n // 2))
+    datas = np.concatenate([data0, data1], axis=0).astype(np.float32)
+
+    # ラベル
+    labels = np.array([int(i/int(n/2)) for i in range(n)])
+
+    # シャッフル
+    perm = np.random.permutation(n)
+    datas, labels = datas[perm], labels[perm]
+
+    return datas, labels
+
+def make_artificial_dataset(path, data_fanc):
     # データセット作成
-    # train_x, train_t = make_artificial_data(1000, "train")
-    # val_x, val_t = make_artificial_data(100, "val")
-    # test_x, test_t = make_artificial_data(100, "test")
-
-    train_x, train_t = make_testdata(1000)
-    val_x, val_t = make_testdata(100)
-    test_x, test_t = make_testdata(100)
+    train_x, train_t = data_fanc(200)
+    val_x, val_t = data_fanc(100)
+    test_x, test_t = data_fanc(100)
 
     # データ保存
     np.save(path + "train_x", train_x)
@@ -188,7 +188,7 @@ def load_artifical_dataset(path):
 
     # numpy -> Dataset -> DataLoader
     ds_prob = data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_t))
-    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=100, shuffle=False)
+    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=10, shuffle=False)
 
     ds_val = data.TensorDataset(torch.from_numpy(val_x), torch.from_numpy(val_t))
     dataloader_val = data.DataLoader(dataset=ds_val, batch_size=100, shuffle=False)
@@ -197,7 +197,7 @@ def load_artifical_dataset(path):
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
 
     # return dataloader_train, dataloader_val, dataloader_test
-    return train_x, train_t, dataloader_val, dataloader_test
+    return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
 
 if __name__ == '__main__':
-    make_artificial_dataset("data/test_arti2/")
+    make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)

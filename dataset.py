@@ -197,7 +197,7 @@ def load_artifical_dataset(path):
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
 
     # return dataloader_train, dataloader_val, dataloader_test
-    return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
+    return train_x, train_t, dataloader_val, dataloader_test
 
 if __name__ == '__main__':
     make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)

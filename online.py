@@ -21,7 +21,7 @@ def train(model, dataloader, optimizer, criterion):
     correct = 0
     total = 0
  
-    for step, (images, labels) in enumerate(tqdm(dataloader), 1):
+    for step, (images, labels) in enumerate((dataloader), 1):
 
         images, labels = images.to(device), labels.to(device)
  
@@ -35,7 +35,7 @@ def train(model, dataloader, optimizer, criterion):
         correct += (predicted == labels).sum().item()
         total += labels.size(0)
  
-    print("Train Acc : %.4f" % (correct/total))
+    # print("Train Acc : %.4f" % (correct/total))
             
 def softmax(Llist):
     exp_x = np.exp(Llist)    
@@ -70,8 +70,6 @@ def cal_loss(model, dataloader):
 
         train_acc = len(np.where(np.array(label_RightorWrong)==1)[0])/len(label_RightorWrong)
         loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
-        
-        print("Tra Acc : %.4f" % (train_acc))
     
     return np.array(loss_list), np.array(p_list), train_acc
 
@@ -88,7 +86,7 @@ def eval(model, dataloader):
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
  
-    print("Val Acc : %.4f" % (correct/total))
+    # print("Val Acc : %.4f" % (correct/total))
     
     return correct/total
 
@@ -105,114 +103,28 @@ def test(model, dataloader):
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
  
-    print("Test Acc : %.4f" % (correct/total))
+    # print("Test Acc : %.4f" % (correct/total))
     
     return correct/total
 
-def WAA(x,loss_list):
-    w_Mom = sum(w*pow(beta,loss_list))
-    for i in range(len(x)):
-        w_Child = w[i]*pow(beta,loss_list[i])
-        w[i] = w_Child/w_Mom
-    
-    return w
-
-def projection(x,k):
-    ranking = np.argsort(x)[::-1]
-    x_sort = np.sort(x)[::-1]
-    
-    if max(x_sort) < 1/k:
-        y = x_sort
-    else:
-        y = x_sort
-        for i in range(n):
-            if y[i] > 1/k:
-                y[i] = 1/k
-                y[i+1:] = y[i+1:]*((1-(i+1)/k)/sum(y[i+1:]))
-            else:
-                pass
-    
-    y_sort_reset = np.zeros(n)
-
-    for j in range(n):
-        y_sort_reset[ranking[j]] = y[j]
-    
-    return y_sort_reset
-
-def conv(conv_comb,k):
-    
-    conv_comb_len = len(conv_comb)
-    zero_point = np.where(conv_comb==0)[0]
-
-    k_point = np.where(abs(conv_comb-np.linalg.norm(conv_comb,ord=1)*(1/k))<=1e-17)[0]
-    
-    endpoint = np.zeros(conv_comb_len) - 1
-    endpoint[zero_point] = 0
-    endpoint[k_point] = 1/k
-    
-    undecided_list = np.where(endpoint==-1)[0]
-    k_undecided_len = k - len(k_point)
-
-    other_k_point = undecided_list[:k_undecided_len]
- 
-    endpoint[other_k_point] = 1/k
-    endpoint = np.where(endpoint==-1,0,endpoint)
- 
-    return endpoint
-
-def decomposition(conv_comb,k,n):
-
-    c_list = []
-    a_list = []
-    l = 0
-    a = 0
-    while max(abs(conv_comb)) >= 1e-17:
-        
-        if l > n or a < 0:
-            print("error")
-            break
-        if l % 10000==0:
-           
-            print("step:"+str(l))
-        else:
-            pass
-        
-        c = conv(conv_comb,k)
-        m = min(conv_comb[np.where(c==1/k)[0]])
-        M = max(conv_comb[np.where(c==0)[0]])
-        a = min(k*m,np.linalg.norm(conv_comb,ord=1)-k*M)
-        
-        conv_comb = conv_comb - a*c
-        conv_comb[conv_comb<=1e-17] = 0
-        
-        c_list.append(c)
-        a_list.append(a)
-        l = l + 1
-
-    c_number = np.random.choice(range(len(c_list)),p=a_list/sum(np.array(a_list)))
-    c_selected = k*c_list[c_number]
-    
-    return c_selected
-
-if __name__ == '__main__':
+def online(acc, Model, dataset_path, out_path, tune_epoch, 
+            batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
+            online_epoch = 50, sigma=10**(-5) # オンライン予測のパラメータ
+            ):
     
     torch.manual_seed(1)
 
-    batch_size = 10
-    epochs = 50
-    acc = 0.75
-    # lr = 10**(-4)
-    lr = 10**(-2)
+    x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
 
-    x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset("data/artifact/")
-    # x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset("data/test_arti/")
+    # n: データ数
     n = len(x_train)
+    # k: 改変するデータ数
     k = int(n * (1-acc))
-    eta = np.sqrt(8*np.log(n)/epochs)
-    beta = np.exp(-eta)
+    # eta: 今回固定
+    eta = np.sqrt(8*np.log(n)/online_epoch)
 
-    # Model = model.SimpleNet().to(device)
-    Model = model.SimpleNet2().to(device)
+    # 分類器のパラメータ(固定)
+    lr = 10**(-2)
     Criterion = nn.CrossEntropyLoss()
     # optimizer = optim.SGD(Model.parameters(), lr=lr)
     Optimizer = optim.Adam(Model.parameters(), lr=lr)
@@ -230,26 +142,38 @@ if __name__ == '__main__':
 
     #============================================
     algorithm = "FPL"
+    # 累積損失
     cumulative_loss = np.zeros(n)
+    # データのインデックスから損失の小さいtop-kを順に並べたもの
     xt = np.array(random.sample(range(0,n),k=k))
     #============================================
         
     if algorithm == "FPL":
-        for epoch in range(1, epochs+1):
-            print("\n--- Epoch : %2d ---" % epoch)
+        for epoch in range(1, online_epoch+1):
+            # print("\n--- Epoch : %2d ---" % epoch)
 
             xt = np.sort(xt)
 
-            # xt(損失の小さいtop-k)をひっくり返す
+            # 損失の小さいtop-kをひっくり返す
             flip_y_train = np.copy(y_train)
             flip_y_train[xt] = (y_train[xt] + 1) % 2
-                    
+            
+            # dataset, dataloader作成
             ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
             dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=True)
-            train(Model, dataloader_fliped, Optimizer, Criterion)
+
+            # 学習
+            for i in range(train_epoch):
+                train(Model, dataloader_fliped, Optimizer, Criterion)
+
+            # 損失を返す
             loss_list, p_list, train_acc = cal_loss(Model, dataloader_fliped)
+
+            # 累積損失
             cumulative_loss = cumulative_loss + loss_list
-            perturbation = np.random.normal(0,0.00001,(n))
+
+            # 累積損失にガウス分布により乱数を足し算したものが損失
+            perturbation = np.random.normal(0, sigma, (n))
             virtual_loss = cumulative_loss + eta*perturbation
 
             # 損失の小さいtop-k個を選択
@@ -263,9 +187,12 @@ if __name__ == '__main__':
             test_acclist.append(test_acc)
 
             # 可視化
-            # visualization(Model, x_train[:100], flip_y_train[:100], virtual_loss[:100], epoch, "data/result/try6/")
-            visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
-            visualization(Model, x_train, flip_y_train, p_list, epoch, "data/result/try1/p/")
-            visualization(Model, x_train, flip_y_train, loss_list, epoch, "data/result/try1/l/")
-        
-    acc_plot(train_acclist, val_acclist, test_acclist, acc, "data/result/try1/", 1)
+            # visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
+            # visualization(Model, x_train, flip_y_train, p_list, epoch, "data/result/try1/p/")
+            # visualization(Model, x_train, flip_y_train, loss_list, epoch, "data/result/try1/l/")
+
+            visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "d", out_path + "d/")
+            visualization(Model, x_train, flip_y_train, p_list, epoch, "p", out_path + "p/")
+            visualization(Model, x_train, flip_y_train, loss_list, epoch, "loss", out_path + "l/")
+
+    acc_plot(train_acclist, val_acclist, test_acclist, acc, out_path, tune_epoch)

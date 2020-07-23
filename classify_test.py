@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 import dataset
 import model
 from visual import visualization, acc_plot_test
-from main import train, eval, test, cal_loss
+from online import train, eval, test, cal_loss
 
 if __name__ == '__main__':
     

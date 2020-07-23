@@ -54,12 +54,6 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
 
     """
     ### 格子点を入力する準備
-    # grid_elem = np.linspace(-1, 1, grid_num)
-
-    # xx = np.array([[x for x in grid_elem] for _ in range(grid_num)])
-    # xx = xx.reshape(grid_num**2)
-    # yy = np.array([[y for _ in range(grid_num)] for y in grid_elem])
-    # yy = yy.reshape(grid_num**2)
 
     x = np.linspace(aabb[0], aabb[1], grid_num)
     y = np.linspace(aabb[2], aabb[3], grid_num)
@@ -88,8 +82,8 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
 
     grid0, grid1 = grid_x[index0], grid_x[index1]
 
-    ax1.plot(grid0[:, 0],grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0)
-    ax1.plot(grid1[:, 0],grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1)
+    ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0)
+    ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1)
 
     # xy軸
     # ax1.plot([-1, 1], [0, 0], marker=".",color="black")
@@ -98,8 +92,7 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
     # 凡例の表示
     ax1.legend()
 
-
-def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
+def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
     """
     データをどのように斟酌したか可視化
     各データの位置・ラベル(改変済み)・損失を同時にプロット
@@ -125,7 +118,7 @@ def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
     # loss_digitの値がcolor_stepのものがあればcolor_step-1に置き換え
     loss_digit = np.where(loss_digit == color_step, color_step-1, loss_digit)
 
-    # 真の正解ラベル
+    # 真の正解ラベル(変える必要あり)
     true_y = np.where(x[:, 0] >= 0, 0, 1)
 
     # プロット
@@ -139,16 +132,25 @@ def visualize_allowance(ax1, ax2, x, y, loss, color_step=100, cmap_type="jet"):
         else:
             ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]), color="red")
 
+    ax1.set_title("epoch: {}".format(epoch))
+
     # color-barを表示
     gradient = np.linspace(0, 1, cm.N)
     gradient_array = np.vstack((gradient, gradient))
     
     ax2.imshow(gradient_array, aspect='auto', cmap=cm)
     ax2.set_axis_off()
- 
-    ax2.set_title("loss_min(Blue): {:.2f}  ~   loss_max(Red): {:.2f}".format(loss_min, loss_max))
 
-def visualization(net, x, y, loss, epoch, path):
+    if vis_type == "p":
+        title_min, title_max = 0.5, 1
+    elif vis_type == "loss":
+        title_min, title_max = 0, 1
+    else:
+        title_min, title_max = loss_min, loss_max
+
+    ax2.set_title("{}_min(Blue): {:.2f}  ~   {}_max(Red): {:.2f}".format(vis_type, title_min, vis_type, title_max))
+
+def visualization(net, x, y, loss, epoch, vis_type, path):
     """
     Attribute
 
@@ -157,6 +159,7 @@ def visualization(net, x, y, loss, epoch, path):
     loss: 各データの損失
 
     epoch: 何エポック目での可視化か
+    vis_type: lossかpかdか
     path: 保存するフォルダのパス
 
     """
@@ -166,13 +169,14 @@ def visualization(net, x, y, loss, epoch, path):
     ax1  = fig.add_axes((0.1,0.3,0.8,0.6))
     ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
 
+    # aabb(点を覆うxy軸平行な長方形)の座標
     aabb = [np.min(x[:, 0]), np.max(x[:, 0]), np.min(x[:, 1]), np.max(x[:, 1])]
 
     # 識別関数の可視化
     visualize_classify(ax1, net, aabb)
 
     # 斟酌の可視化
-    visualize_allowance(ax1, ax2, x, y, loss)
+    visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type)
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")

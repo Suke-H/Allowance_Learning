@@ -27,6 +27,7 @@ def acc_plot(train_accs, val_accs, test_accs, goal_acc, root_path, file_no):
     plt.xticks([i for i in range(1, end_epoch+1, 5)])
     plt.legend()
     plt.savefig(root_path+"acc_"+str(file_no)+".png")
+    plt.close()
 
 def acc_plot_test(train_accs, val_accs, test_accs, root_path, file_no):
     """ 学習記録(epoch-acc)をプロット """
@@ -147,6 +148,9 @@ def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, c
         title_min, title_max = 0, 1
     else:
         title_min, title_max = loss_min, loss_max
+
+    if (title_min > loss_min) or (title_max < loss_max):
+        print("Warning... min: {} > {} or max: {} < {}".format(title_min, loss_min, title_max, loss_max))
 
     ax2.set_title("{}_min(Blue): {:.2f}  ~   {}_max(Red): {:.2f}".format(vis_type, title_min, vis_type, title_max))
 

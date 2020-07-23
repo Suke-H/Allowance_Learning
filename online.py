@@ -160,7 +160,7 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             
             # dataset, dataloader作成
             ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
-            dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=True)
+            dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=False)
 
             # 学習
             for i in range(train_epoch):
@@ -195,4 +195,4 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             visualization(Model, x_train, flip_y_train, p_list, epoch, "p", out_path + "p/")
             visualization(Model, x_train, flip_y_train, loss_list, epoch, "loss", out_path + "l/")
 
-    acc_plot(train_acclist, val_acclist, test_acclist, acc, out_path, tune_epoch)
+    acc_plot(train_acclist, val_acclist, test_acclist, acc, out_path+"../", tune_epoch)

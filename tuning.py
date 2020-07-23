@@ -2,6 +2,7 @@ import torch
 import itertools
 import os
 import numpy as np
+import pandas as pd
 
 from online import online
 from model import SimpleNet2
@@ -14,29 +15,40 @@ def tuning():
     acc = 0.75
     Model = SimpleNet2().to(device)
     dataset_path = "data/artifact/"
-    out_path = "data/result/tuning/test/"
+    out_path = "data/result/tuning/batch/"
 
-    batch_size_list = [10]
+    batch_size_list = [10, 50, 100]
     train_epoch_list = [10]
     online_epoch_list = [50]
     sigma_list = [10**(-5)]
+    # batch_size_list = [10]
+    # train_epoch_list = [10]
+    # online_epoch_list = [50]
+    # sigma_list = [10**(-5)]
 
-    tune_list = list(itertools.product(batch_size_list, train_epoch_list, online_epoch_list, sigma_list))
+    tune_list = np.array(list(itertools.product(batch_size_list, train_epoch_list, online_epoch_list, sigma_list)))
     print(tune_list)
 
-    np.savetxt(out_path+"para.txt", tune_list, fmt="%0.5f", delimiter=",")
+    df = pd.DataFrame(data=tune_list, columns=['batch_size', 'train_epoch', 'online_epoch', 'sigma'])
+    df.to_csv(out_path+"para.txt")
+    # np.savetxt(out_path+"para.txt", tune_list, fmt="%0.5f", delimiter=",")
 
     for i, (batch_size, train_epoch, online_epoch, sigma) in enumerate(tune_list, 1):
 
-        print("epoch {}".format(i))
+        print("="*50)
+        print("epoch: {}".format(i))
+        print("batch_size: {}".format(batch_size))
+        print("train_epoch: {}".format(train_epoch))
+        print("online_epoch: {}".format(online_epoch))
+        print("sigma: {}".format(sigma))
 
         os.makedirs(out_path + str(i) + "/p", exist_ok=True)
         os.makedirs(out_path + str(i) + "/d", exist_ok=True)
         os.makedirs(out_path + str(i) + "/l", exist_ok=True)
 
         online(acc, Model, dataset_path, out_path + str(i) + "/", i, 
-                batch_size=batch_size, train_epoch=train_epoch,  # 分類器のパラメータ
-                online_epoch=online_epoch, sigma=sigma # オンライン予測のパラメータ
+                batch_size=int(batch_size), train_epoch=int(train_epoch),  # 分類器のパラメータ
+                online_epoch=int(online_epoch), sigma=sigma # オンライン予測のパラメータ
                 )
     
 tuning()

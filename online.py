@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import dataset
 import model
-from visual import visualization, acc_plot
+from visual import visualization, acc_plot, init_visual
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -69,7 +69,8 @@ def cal_loss(model, dataloader):
             label_RightorWrong.extend(labelinf)
 
         train_acc = len(np.where(np.array(label_RightorWrong)==1)[0])/len(label_RightorWrong)
-        loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
+        # loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
+        loss_list = np.array(p_list)
     
     return np.array(loss_list), np.array(p_list), train_acc
 
@@ -116,6 +117,10 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
 
     x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
 
+    print(len(x_train))
+
+    init_visual(x_train, y_train, out_path)
+
     # n: データ数
     n = len(x_train)
     # k: 改変するデータ数
@@ -132,6 +137,8 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     train_acclist = []
     val_acclist = []
     test_acclist = []
+
+    virtual_loss_list = np.empty((0, n))
 
     #===algorithm setting===
 
@@ -151,7 +158,6 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     if algorithm == "FPL":
         for epoch in range(1, online_epoch+1):
             # print("\n--- Epoch : %2d ---" % epoch)
-
             xt = np.sort(xt)
 
             # 損失の小さいtop-kをひっくり返す
@@ -186,13 +192,15 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             val_acclist.append(val_acc)
             test_acclist.append(test_acc)
 
+            virtual_loss_list = np.append(virtual_loss_list, virtual_loss)
+
             # 可視化
             # visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
             # visualization(Model, x_train, flip_y_train, p_list, epoch, "data/result/try1/p/")
             # visualization(Model, x_train, flip_y_train, loss_list, epoch, "data/result/try1/l/")
 
-            visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "d", out_path + "d/")
-            visualization(Model, x_train, flip_y_train, p_list, epoch, "p", out_path + "p/")
-            visualization(Model, x_train, flip_y_train, loss_list, epoch, "loss", out_path + "l/")
-
+            visualization(Model, x_train, flip_y_train, y_train, virtual_loss, epoch, "d", out_path + "d/")
+            visualization(Model, x_train, flip_y_train, y_train, p_list, epoch, "p", out_path + "p/")
+            visualization(Model, x_train, flip_y_train, y_train, loss_list, epoch, "loss", out_path + "l/")
+    
     acc_plot(train_acclist, val_acclist, test_acclist, acc, out_path+"../", tune_epoch)

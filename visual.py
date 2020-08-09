@@ -55,12 +55,9 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
 
     """
     ### 格子点を入力する準備
-
     x = np.linspace(aabb[0], aabb[1], grid_num)
     y = np.linspace(aabb[2], aabb[3], grid_num)
-
     xx, yy = np.meshgrid(x,y)
-
     xy = np.stack([xx, yy])
     xy = xy.T.reshape(grid_num**2, 2)
 
@@ -77,7 +74,6 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
     # グリッドをクラス分け
     index0 = np.where(grid_y == 0)
     index1 = np.where(grid_y == 1)
-
     label0 = "0"
     label1 = "1"
 
@@ -93,7 +89,7 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
     # 凡例の表示
     ax1.legend()
 
-def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
+def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
     """
     データをどのように斟酌したか可視化
     各データの位置・ラベル(改変済み)・損失を同時にプロット
@@ -103,7 +99,6 @@ def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, c
     loss: 各データの損失
 
     """
-
     n = len(x)
 
     # color-map
@@ -111,7 +106,9 @@ def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, c
 
     # lossを正規化(min ~ max -> 0 ~ 1)
     loss_max, loss_min = np.max(loss), np.min(loss)
-    loss = (loss - loss_min) / (loss_max - loss_min)
+
+    if loss_min != loss_max:
+        loss = (loss - loss_min) / (loss_max - loss_min)
 
     # lossを(0, 1, ..., color_step-1)の離散値に変換
     loss_digit = (loss // (1 / color_step)).astype(np.int)
@@ -119,19 +116,16 @@ def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, c
     # loss_digitの値がcolor_stepのものがあればcolor_step-1に置き換え
     loss_digit = np.where(loss_digit == color_step, color_step-1, loss_digit)
 
-    # 真の正解ラベル(変える必要あり)
-    true_y = np.where(x[:, 0] >= 0, 0, 1)
-
     # プロット
     for i in range(n):
-        ax1.plot(x[i, 0],x[i, 1],'o', color=cm(loss[i]))
+        ax1.plot(x[i, 0], x[i, 1],'o', color=cm(loss[i]))
 
         # 改変ラベルではない時
         if true_y[i] == y[i]:
-            ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]))
+            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]))
         # 改変ラベル
         else:
-            ax1.annotate(y[i], xy=(x[i, 0],x[i, 1]), color="red")
+            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]), color="red")
 
     ax1.set_title("epoch: {}".format(epoch))
 
@@ -142,19 +136,31 @@ def visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type, color_step=100, c
     ax2.imshow(gradient_array, aspect='auto', cmap=cm)
     ax2.set_axis_off()
 
-    if vis_type == "p":
-        title_min, title_max = 0.5, 1
-    elif vis_type == "loss":
-        title_min, title_max = 0, 1
-    else:
-        title_min, title_max = loss_min, loss_max
+    ax2.set_title("{}_min(Blue): {:.2f}  ~   {}_max(Red): {:.2f}".format(vis_type, loss_min, vis_type, loss_max))
 
-    if (title_min > loss_min) or (title_max < loss_max):
-        print("Warning... min: {} > {} or max: {} < {}".format(title_min, loss_min, title_max, loss_max))
+# def visualize_weight()
 
-    ax2.set_title("{}_min(Blue): {:.2f}  ~   {}_max(Red): {:.2f}".format(vis_type, title_min, vis_type, title_max))
+def init_visual(x, y, path):
+    """
+    データをどのように斟酌したか可視化
+    各データの位置・ラベル(改変済み)・損失を同時にプロット
 
-def visualization(net, x, y, loss, epoch, vis_type, path):
+    Attribute
+    x, y: データ(訓練データ等), 正解ラベル(改変済み)
+    loss: 各データの損失
+
+    """
+    n = len(x)
+
+    # プロット
+    for i in range(n):
+        plt.plot(x[i, 0], x[i, 1], 'o')
+        plt.annotate(y[i], xy=(x[i, 0], x[i, 1]))
+
+    plt.savefig(path + "init.png")
+    plt.close()
+
+def visualization(net, x, y, true_y, loss, epoch, vis_type, path):
     """
     Attribute
 
@@ -167,7 +173,6 @@ def visualization(net, x, y, loss, epoch, vis_type, path):
     path: 保存するフォルダのパス
 
     """
-
     # グラフ作成
     fig = plt.figure()
     ax1  = fig.add_axes((0.1,0.3,0.8,0.6))
@@ -180,7 +185,7 @@ def visualization(net, x, y, loss, epoch, vis_type, path):
     visualize_classify(ax1, net, aabb)
 
     # 斟酌の可視化
-    visualize_allowance(ax1, ax2, x, y, loss, epoch, vis_type)
+    visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")

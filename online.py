@@ -42,7 +42,7 @@ def softmax(Llist):
     y = exp_x / np.array([np.sum(exp_x,axis=1)]).T    
     return np.max(y,axis=1)
 
-def cal_loss(model, dataloader):
+def cal_loss(model, dataloader, loss_type):
     model.eval()
     correct = 0
     total = 0
@@ -69,8 +69,15 @@ def cal_loss(model, dataloader):
             label_RightorWrong.extend(labelinf)
 
         train_acc = len(np.where(np.array(label_RightorWrong)==1)[0])/len(label_RightorWrong)
-        # loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
-        loss_list = np.array(p_list)
+
+        if loss_type == "loss1":
+            loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
+
+        elif loss_type == "p":
+            loss_list = np.array(p_list)
+
+        elif loss_type == "1-p":
+            loss_list = 1 - np.array(p_list)
     
     return np.array(loss_list), np.array(p_list), train_acc
 
@@ -108,18 +115,27 @@ def test(model, dataloader):
     
     return correct/total
 
+def init_weights(m):
+    if type(m) == nn.Linear:
+        # torch.nn.init.xavier_uniform(m.weight)
+        torch.nn.init.xavier_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
+
 def online(acc, Model, dataset_path, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
-            online_epoch = 50, sigma=10**(-5) # オンライン予測のパラメータ
+            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
             ):
     
     torch.manual_seed(1)
 
+    # 入力データをロード
     x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
-
-    print(len(x_train))
-
+    # 入力データを可視化
     init_visual(x_train, y_train, out_path)
+
+    # ネットワークの重みを初期化
+    Model.apply(init_weights)
 
     # n: データ数
     n = len(x_train)
@@ -128,10 +144,9 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     # eta: 今回固定
     eta = np.sqrt(8*np.log(n)/online_epoch)
 
-    # 分類器のパラメータ(固定)
+    # パラメータ
     lr = 10**(-2)
     Criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.SGD(Model.parameters(), lr=lr)
     Optimizer = optim.Adam(Model.parameters(), lr=lr)
 
     train_acclist = []
@@ -168,12 +183,16 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
             dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=False)
 
+            # ネットワークの重みを初期化
+            if reset_flag:
+                Model.apply(init_weights)
+
             # 学習
             for i in range(train_epoch):
                 train(Model, dataloader_fliped, Optimizer, Criterion)
 
             # 損失を返す
-            loss_list, p_list, train_acc = cal_loss(Model, dataloader_fliped)
+            loss_list, p_list, train_acc = cal_loss(Model, dataloader_fliped, loss_type)
 
             # 累積損失
             cumulative_loss = cumulative_loss + loss_list

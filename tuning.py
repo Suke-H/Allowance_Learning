@@ -12,15 +12,15 @@ def tuning():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    acc = 0.80
+    acc = 0.8
     Model = SimpleNet2().to(device)
     # dataset_path = "data/artifact/"
     dataset_path = "data/dataset/fuzzy_data_u1_b10/"
-    out_path = "data/result/tuning/loss_test/p5_2/"
+    out_path = "data/result/tuning/forSibu/4/"
 
     batch_size_list = [200]
-    train_epoch_list = [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10]
-    online_epoch_list = [50]
+    train_epoch_list = [10]
+    online_epoch_list = [5]
     sigma_list = [10**(-4)]
 
     # 0ならFalse, 1ならTrue

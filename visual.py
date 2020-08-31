@@ -11,39 +11,26 @@ import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-def acc_plot(train_accs, val_accs, test_accs, goal_acc, root_path, file_no):
+def acc_plot(train_accs_ori, train_accs_change, test_accs, goal_acc, root_path, file_no):
     """ 学習記録(epoch-acc)をプロット """
 
-    end_epoch = len(train_accs)
+    end_epoch = len(train_accs_ori)
 
     plt.figure()
     runs = [i for i in range(1, end_epoch+1)]
-    plt.plot(runs, train_accs, label='train_acc')
-    plt.plot(runs, val_accs, label='val_acc')
+    plt.plot(runs, train_accs_ori, label='train_acc_ori')
+    plt.plot(runs, train_accs_change, label='train_acc_change')
     plt.plot(runs, test_accs, label='test_acc')
     plt.plot(runs, [goal_acc for i in range(end_epoch)], label='goal_acc')
-    plt.xlabel('epoch')
-    plt.ylabel('acc')
-    plt.xticks([i for i in range(1, end_epoch+1, 5)])
-    plt.legend()
-    plt.savefig(root_path+"acc_"+str(file_no)+".png")
+    plt.xlabel('round',fontsize=16)
+    plt.ylabel('acc',fontsize=16)
+    plt.xticks([i for i in range(1, end_epoch+1, 5)],fontsize=12)
+    plt.yticks(fontsize=12)
+
+    plt.legend(fontsize=15)
+    # plt.rc('legend', fontsize=20)
+    plt.savefig(root_path+"acc_"+str(file_no)+".png", bbox_inches='tight')
     plt.close()
-
-def acc_plot_test(train_accs, val_accs, test_accs, root_path, file_no):
-    """ 学習記録(epoch-acc)をプロット """
-
-    end_epoch = len(train_accs)
-
-    plt.figure()
-    runs = [i for i in range(1, end_epoch+1)]
-    plt.plot(runs, train_accs, label='train_acc')
-    plt.plot(runs, val_accs, label='val_acc')
-    plt.plot(runs, test_accs, label='test_acc')
-    plt.xlabel('epoch')
-    plt.ylabel('acc')
-    plt.xticks([i for i in range(1, end_epoch+1, 5)])
-    plt.legend()
-    plt.savefig(root_path+"acc_"+str(file_no)+".png")
 
 def visualize_classify(ax1, net, aabb, grid_num=100):
     """
@@ -82,12 +69,8 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
     ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0)
     ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1)
 
-    # xy軸
-    # ax1.plot([-1, 1], [0, 0], marker=".",color="black")
-    # ax1.plot([0, 0], [-1, 1], marker=".",color="black")
-
-    # 凡例の表示
-    ax1.legend()
+    # # 凡例の表示
+    # ax1.legend(markerscale=3, fontsize=16)
 
 def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
     """
@@ -118,16 +101,17 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
 
     # プロット
     for i in range(n):
-        ax1.plot(x[i, 0], x[i, 1],'o', color=cm(loss[i]))
 
-        # 改変ラベルではない時
-        if true_y[i] == y[i]:
-            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]))
-        # 改変ラベル
+        if true_y[i] == 0:
+            ax1.plot(x[i, 0], x[i, 1],'o', color=cm(loss[i]))
+
         else:
-            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]), color="red")
+            ax1.plot(x[i, 0], x[i, 1],'x', color=cm(loss[i]))
 
-    ax1.set_title("epoch: {}".format(epoch))
+    # ax1.set_title("round: {}".format(epoch))
+
+    # 凡例の表示
+    ax1.legend(markerscale=3, fontsize=14)
 
     # color-barを表示
     gradient = np.linspace(0, 1, cm.N)
@@ -136,7 +120,7 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
     ax2.imshow(gradient_array, aspect='auto', cmap=cm)
     ax2.set_axis_off()
 
-    ax2.set_title("{}_min(Blue): {:.2f}  ~   {}_max(Red): {:.2f}".format(vis_type, loss_min, vis_type, loss_max))
+    ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
 # def visualize_weight()
 

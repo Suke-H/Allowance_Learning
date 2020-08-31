@@ -6,6 +6,8 @@ import seaborn as sns
 import tensorflow as tf
 import torch
 import torch.utils.data as data
+import torchvision
+from torchvision import models, transforms
 
 def Random(a, b):
     """ aからbまでの一様乱数を返す """
@@ -197,7 +199,84 @@ def load_artifical_dataset(path):
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
 
     # return dataloader_train, dataloader_val, dataloader_test
-    return train_x, train_t, dataloader_val, dataloader_test
+    return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
+
+class ImageTransform():
+    """
+    画像の前処理クラス。
+    torchテンソル化と標準化を行う。
+    """
+
+    def __init__(self):
+        self.data_transform = transforms.Compose(
+                            [transforms.ToTensor(),
+                            transforms.Normalize((0.5, ), (0.5, ))])
+
+    def __call__(self, img):
+        return self.data_transform(img)
+
+class Subset(torch.utils.data.Dataset):
+    """
+    インデックスを入力にデータセットの部分集合を取り出す
+    Arguments:
+        dataset : 入力データセット
+        indices : 取り出すデータセットのインデックス
+    """
+    def __init__(self, dataset, indices):
+        self.dataset = dataset
+        self.indices = indices
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
+
+def MNIST_load():
+    # 前処理用の関数
+    transform = ImageTransform()
+    img_transformed = transform
+
+    # データセット読み込み + 前処理
+    trainval_dataset = torchvision.datasets.MNIST(root='./data', 
+                        train=True, download=True, transform=img_transformed)
+
+    # 元々trainデータのものをtrain/valに分割
+    n_samples = len(trainval_dataset) # n_samples is 60000
+    train_size = int(n_samples * 0.8) # train_size is 48000
+
+    subset1_indices = list(range(0,train_size)) # [0,1,.....47999]
+    subset2_indices = list(range(train_size,n_samples)) # [48000,48001,.....59999]
+
+    train_dataset = Subset(trainval_dataset, subset1_indices)
+    val_dataset   = Subset(trainval_dataset, subset2_indices)
+
+    # データセット読み込み + 前処理
+    test_dataset = torchvision.datasets.MNIST(root='./data', 
+                    train=False, download=True, transform=img_transformed)
+
+    # データセット読み込み + 前処理
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                    batch_size=100, shuffle=False, num_workers=2)
+    val_loader = torch.utils.data.DataLoader(val_dataset, 
+                    batch_size=100, shuffle=False, num_workers=2)                                         
+    test_loader = torch.utils.data.DataLoader(test_dataset, 
+                    batch_size=100, shuffle=False, num_workers=2)
+
+    # 小分け
+    train_x = np.array([train_dataset[i][0].cpu().numpy() for i in range(48000)])
+    train_y = np.array([train_dataset[i][1] for i in range(48000)])
+    val_x = np.array([val_dataset[i][0].cpu().numpy() for i in range(12000)])
+    val_y = np.array([val_dataset[i][1] for i in range(12000)])
+    test_x = np.array([test_dataset[i][0].cpu().numpy() for i in range(10000)])
+    test_y = np.array([test_dataset[i][1] for i in range(10000)])
+
+    print(train_x.shape)
+
 
 if __name__ == '__main__':
-    make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)
+    # make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)
+    MNIST_load()
+
+
+

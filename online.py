@@ -98,23 +98,6 @@ def eval(model, dataloader):
     
     return correct/total
 
-def test(model, dataloader):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for (images, labels) in dataloader:
-            images, labels = images.to(device), labels.to(device)
- 
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
- 
-    # print("Test Acc : %.4f" % (correct/total))
-    
-    return correct/total
-
 def init_weights(m):
     if type(m) == nn.Linear:
         # torch.nn.init.xavier_uniform(m.weight)
@@ -130,7 +113,7 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     torch.manual_seed(1)
 
     # 入力データをロード
-    x_train, y_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
     # 入力データを可視化
     init_visual(x_train, y_train, out_path)
 
@@ -149,8 +132,8 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     Criterion = nn.CrossEntropyLoss()
     Optimizer = optim.Adam(Model.parameters(), lr=lr)
 
-    train_acclist = []
-    val_acclist = []
+    train_acc_ori_list = []
+    train_acc_change_list = []
     test_acclist = []
 
     virtual_loss_list = np.empty((0, n))
@@ -192,7 +175,7 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
                 train(Model, dataloader_fliped, Optimizer, Criterion)
 
             # 損失を返す
-            loss_list, p_list, train_acc = cal_loss(Model, dataloader_fliped, loss_type)
+            loss_list, p_list, train_acc_change = cal_loss(Model, dataloader_fliped, loss_type)
 
             # 累積損失
             cumulative_loss = cumulative_loss + loss_list
@@ -203,12 +186,13 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
 
             # 損失の小さいtop-k個を選択
             xt = np.argsort(virtual_loss)[:k]
-        
-            val_acc = eval(Model, dataloader_val)
-            test_acc = test(Model, dataloader_test)
+
+            # 
+            train_acc_ori = eval(Model, dataloader_train)
+            test_acc = eval(Model, dataloader_test)
             
-            train_acclist.append(train_acc)
-            val_acclist.append(val_acc)
+            train_acc_ori_list.append(train_acc_ori)
+            train_acc_change_list.append(train_acc_change)
             test_acclist.append(test_acc)
 
             virtual_loss_list = np.append(virtual_loss_list, virtual_loss)
@@ -222,4 +206,4 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             visualization(Model, x_train, flip_y_train, y_train, p_list, epoch, "p", out_path + "p/")
             visualization(Model, x_train, flip_y_train, y_train, loss_list, epoch, "loss", out_path + "l/")
     
-    acc_plot(train_acclist, val_acclist, test_acclist, acc, out_path+"../", tune_epoch)
+    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path+"../", tune_epoch)

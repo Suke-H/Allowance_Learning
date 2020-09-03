@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import dataset
 import model
-from visual import visualization, acc_plot, init_visual
+from visual import visualization, acc_plot, init_visual, visualize_weights
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -135,7 +135,6 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     train_acc_ori_list = []
     train_acc_change_list = []
     test_acclist = []
-
     virtual_loss_list = np.empty((0, n))
 
     #===algorithm setting===
@@ -187,15 +186,18 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             # 損失の小さいtop-k個を選択
             xt = np.argsort(virtual_loss)[:k]
 
-            # 
+            # 改変前の訓練データのacc
             train_acc_ori = eval(Model, dataloader_train)
+            # テストデータのacc
             test_acc = eval(Model, dataloader_test)
             
+            # 各ラウンドごとのaccを保存
             train_acc_ori_list.append(train_acc_ori)
             train_acc_change_list.append(train_acc_change)
             test_acclist.append(test_acc)
 
-            virtual_loss_list = np.append(virtual_loss_list, virtual_loss)
+            # 各ラウンドごとの累積損失を保存
+            virtual_loss_list = np.append(virtual_loss_list, virtual_loss.reshape(1, n), axis=0)
 
             # 可視化
             # visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
@@ -206,4 +208,8 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             visualization(Model, x_train, flip_y_train, y_train, p_list, epoch, "p", out_path + "p/")
             visualization(Model, x_train, flip_y_train, y_train, loss_list, epoch, "loss", out_path + "l/")
     
+    # 学習曲線をプロット
     acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path+"../", tune_epoch)
+
+    # 重みの遷移を可視化
+    visualize_weights(x_train, virtual_loss_list, out_path+"../")

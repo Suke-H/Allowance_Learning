@@ -141,12 +141,10 @@ def make_testdata(n):
 
     return np.array(datas, dtype="float32"), np.array(labels, dtype="int")
 
-def fuzzy_dataset(n):
+def fuzzy_dataset(n, mu):
     # 平均(label0と1で変える)
-    mu0 = [1, 1]
-    mu1 = [-1, -1]
-    # mu0 = [3/4, 3/4]
-    # mu1 = [-3/4, -3/4]
+    mu0 = [mu, mu]
+    mu1 = [-mu, -mu]
 
     # 分散(label0と1で共通)
     sigma = [[1, 0], [0, 1]]
@@ -199,6 +197,24 @@ def load_artifical_dataset(path):
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
 
     # return dataloader_train, dataloader_val, dataloader_test
+    return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
+
+def make_and_load_artifical_dataset(n, mu):
+    # データセット作成
+    train_x, train_t = fuzzy_dataset(n, mu)
+    val_x, val_t = fuzzy_dataset(n, mu)
+    test_x, test_t = fuzzy_dataset(n, mu)
+
+    # numpy -> Dataset -> DataLoader
+    ds_prob = data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_t))
+    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=10, shuffle=False)
+
+    ds_val = data.TensorDataset(torch.from_numpy(val_x), torch.from_numpy(val_t))
+    dataloader_val = data.DataLoader(dataset=ds_val, batch_size=100, shuffle=False)
+
+    ds_test = data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_t))
+    dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
+
     return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
 
 class ImageTransform():
@@ -273,10 +289,9 @@ def MNIST_load():
 
     print(train_x.shape)
 
-
 if __name__ == '__main__':
     # make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)
-    MNIST_load()
+    # MNIST_load()
 
 
 

@@ -16,17 +16,17 @@ def tuning():
     Model = SimpleNet2().to(device)
     # dataset_path = "data/artifact/"
     dataset_path = "data/dataset/fuzzy_data_u1_b10/"
-    out_path = "data/result/tuning/forSibu/4/"
+    out_path = "data/result/tuning/weight_test/2/"
 
     batch_size_list = [200]
     train_epoch_list = [10]
-    online_epoch_list = [5]
+    online_epoch_list = [50]
     sigma_list = [10**(-4)]
 
     # 0ならFalse, 1ならTrue
     reset_list = [0]
     # 1: loss1, 2: 1-p, 3: p
-    loss_list = [3]
+    loss_list = [2]
 
     tune_list = np.array(list(itertools.product(batch_size_list, train_epoch_list, online_epoch_list, sigma_list, reset_list, loss_list)))
     df = pd.DataFrame(data=tune_list, columns=['batch_size', 'train_epoch', 'online_epoch', 'sigma', 'reset', 'loss'])

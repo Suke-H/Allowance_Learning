@@ -11,6 +11,21 @@ import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+def Random(a, b):
+    """ aからbまでの一様乱数を返す """
+    return (b - a) * np.random.rand() + a
+
+def K_neighbor(points, p, k):
+    """ pointsからpのk近傍点のindexのリストを返す """
+
+    #points[i]とpointsの各点とのユークリッド距離を格納
+    distances = np.sum(np.square(points - p), axis=1)
+
+    #距離順でpointsをソートしたときのインデックスを格納
+    sorted_index = np.argsort(distances)
+
+    return sorted_index[:k]
+
 def acc_plot(train_accs_ori, train_accs_change, test_accs, goal_acc, root_path, file_no):
     """ 学習記録(epoch-acc)をプロット """
 
@@ -102,11 +117,21 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
     # プロット
     for i in range(n):
 
+        # (改変前)label 0
         if true_y[i] == 0:
             ax1.plot(x[i, 0], x[i, 1],'o', color=cm(loss[i]))
 
+        # (改変前)label 1
         else:
             ax1.plot(x[i, 0], x[i, 1],'x', color=cm(loss[i]))
+
+        # 改変ラベルではない時
+        if true_y[i] == y[i]:
+            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]))
+
+        # 改変ラベル
+        else:
+            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]), color="red")
 
     # ax1.set_title("round: {}".format(epoch))
 
@@ -122,7 +147,83 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
 
     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
-# def visualize_weight()
+def visualize_weights(x_train, loss, path):
+    """
+    各ラウンドにおける各訓練データの損失の遷移を可視化
+
+    各データは
+
+    1. 全データの平均となる点pを求める
+    2. p から一番離れている点（ユークリッド距離が一番大きい点）を 次の p とする
+    3. p から（ユークリッド距離で）近い点を 次の p とする
+    4. 3. を繰り返して、p に選択された順にデータを並べる
+
+    というように上から並べる
+
+    Attribute
+    x_train: 訓練データ
+    loss: 各データの損失
+    path: 画像の保存先
+
+    """
+
+    # p: 選択された点
+    # 最初はx_trainの平均点で初期化
+    p = np.mean(x_train, axis=0)
+    n = len(x_train)
+
+    # remain_list: 選択されていない点のリスト
+    remain_list = [i for i in range(n)]
+
+    # sorted_indices: pの選択順に訓練データのインデックスを並べたリスト
+    sorted_indices = []
+
+    for i in range(n):
+        # 最初はx_trainの平均点から最も遠い点を選択
+        if i == 0:
+            indices = K_neighbor(x_train, p, n)
+            p_index = indices[n-1]
+
+        # それ以降は前に選択された点から最も近い点を選択
+        else:
+            indices = K_neighbor(np.delete(x_train, sorted_indices, axis=0), p, 1)
+            p_index = remain_list[indices[0]]    
+            
+        # pに選択されたデータのインデックスを保存していく
+        sorted_indices.append(p_index)
+
+        # 次の p
+        p = x_train[p_index]
+        # remain_listから p を削除
+        remain_list.remove(p_index)
+
+    # 結果からlossを並び替え
+    loss = loss[:, sorted_indices]
+
+    # データの番号を確認する用のプロット
+    plt.plot(x_train[:, 0], x_train[:, 1], 'o')
+    for i in range(n):
+        num = sorted_indices[i]
+        plt.annotate(i, xy=(x_train[num, 0], x_train[num, 1]))
+    # plt.show()
+    plt.savefig(path + "label.png")
+    plt.close()
+
+    round_n = loss.shape[0]
+
+    # 重みを正規化
+    loss_min, loss_max = np.min(loss, axis=1), np.max(loss, axis=1)
+    loss_normed = np.array([(loss[i] - loss_min[i]) / (loss_max[i] - loss_min[i]) for i in range(round_n)])
+
+    # 重みの可視化
+    plt.imshow(loss_normed.T, cmap='Reds', aspect=0.1)
+    plt.xlabel("rounds")
+    plt.ylabel("datas")
+    # plt.colorbar()
+    plt.xticks([i for i in range(1, round_n+1, 5)],fontsize=12)
+    # plt.show()
+    plt.savefig(path + "weights.png")
+    plt.close()
 
 def init_visual(x, y, path):
     """
@@ -140,7 +241,7 @@ def init_visual(x, y, path):
     for i in range(n):
         plt.plot(x[i, 0], x[i, 1], 'o')
         plt.annotate(y[i], xy=(x[i, 0], x[i, 1]))
-
+    # plt.show()
     plt.savefig(path + "init.png")
     plt.close()
 
@@ -170,30 +271,6 @@ def visualization(net, x, y, true_y, loss, epoch, vis_type, path):
 
     # 斟酌の可視化
     visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
-
-    # plt.show()
-    plt.savefig(path + str(epoch) + ".png")
-    plt.close()
-
-def visualization_test(net, epoch, path):
-    """
-    Attribute
-
-    net: 学習モデル
-    path: 保存するフォルダのパス
-
-    """
-
-    # グラフ作成
-    fig = plt.figure()
-    ax1  = fig.add_axes((0.1,0.3,0.8,0.6))
-    ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
-
-    # 識別関数の可視化
-    visualize_classify(ax1, net)
-
-    # 斟酌の可視化
-    # visualize_allowance(ax1, ax2, x, y, loss)
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")

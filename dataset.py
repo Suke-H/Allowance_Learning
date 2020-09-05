@@ -289,9 +289,6 @@ def MNIST_load():
 
     print(train_x.shape)
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)
     # MNIST_load()
-
-
-

@@ -8,6 +8,7 @@ import tensorflow as tf
 import numpy as np
 import random
 from tqdm import tqdm
+from time import time
 
 import dataset
 import model
@@ -104,7 +105,7 @@ def init_weights(m):
         torch.nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
-def online(acc, Model, dataset_path, out_path, tune_epoch, 
+def online(acc, Model, dataset_path, data_para, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
             online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
             reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
@@ -113,7 +114,9 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     torch.manual_seed(1)
 
     # 入力データをロード
-    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+    # x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.make_and_load_artifical_dataset(data_para[0], data_para[1])
+
     # 入力データを可視化
     init_visual(x_train, y_train, out_path)
 
@@ -154,6 +157,9 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
         
     if algorithm == "FPL":
         for epoch in range(1, online_epoch+1):
+
+            start = time()
+
             # print("\n--- Epoch : %2d ---" % epoch)
             xt = np.sort(xt)
 
@@ -203,7 +209,6 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
             # visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
             # visualization(Model, x_train, flip_y_train, p_list, epoch, "data/result/try1/p/")
             # visualization(Model, x_train, flip_y_train, loss_list, epoch, "data/result/try1/l/")
-
             visualization(Model, x_train, flip_y_train, y_train, virtual_loss, epoch, "d", out_path + "d/")
             visualization(Model, x_train, flip_y_train, y_train, p_list, epoch, "p", out_path + "p/")
             visualization(Model, x_train, flip_y_train, y_train, loss_list, epoch, "loss", out_path + "l/")
@@ -212,4 +217,4 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path+"../", tune_epoch)
 
     # 重みの遷移を可視化
-    visualize_weights(x_train, virtual_loss_list, out_path+"../")
+    visualize_weights(x_train, virtual_loss_list, tune_epoch, out_path+"../")

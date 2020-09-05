@@ -10,6 +10,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from time import time
 
 def Random(a, b):
     """ aからbまでの一様乱数を返す """
@@ -81,8 +82,8 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
 
     grid0, grid1 = grid_x[index0], grid_x[index1]
 
-    ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0)
-    ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1)
+    ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0, zorder=1)
+    ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1, zorder=1)
 
     # # 凡例の表示
     # ax1.legend(markerscale=3, fontsize=16)
@@ -114,24 +115,14 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
     # loss_digitの値がcolor_stepのものがあればcolor_step-1に置き換え
     loss_digit = np.where(loss_digit == color_step, color_step-1, loss_digit)
 
-    # プロット
-    for i in range(n):
+    # 
+    index_0 = np.where(true_y == 0)
+    index_1 = np.where(true_y == 1)
 
-        # (改変前)label 0
-        if true_y[i] == 0:
-            ax1.plot(x[i, 0], x[i, 1],'o', color=cm(loss[i]))
-
-        # (改変前)label 1
-        else:
-            ax1.plot(x[i, 0], x[i, 1],'x', color=cm(loss[i]))
-
-        # 改変ラベルではない時
-        if true_y[i] == y[i]:
-            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]))
-
-        # 改変ラベル
-        else:
-            ax1.annotate(y[i], xy=(x[i, 0], x[i, 1]), color="red")
+    # (改変前)label 0
+    ax1.scatter(x[index_0, 0], x[index_0, 1], marker='o', color=cm(loss[index_0]), zorder=2)
+    # (改変前)label 1
+    ax1.scatter(x[index_1, 0], x[index_1, 1], marker='x', color=cm(loss[index_1]), zorder=2)
 
     # ax1.set_title("round: {}".format(epoch))
 
@@ -147,7 +138,7 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
 
     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
-def visualize_weights(x_train, loss, path):
+def visualize_weights(x_train, loss, round, path):
     """
     各ラウンドにおける各訓練データの損失の遷移を可視化
 
@@ -172,42 +163,41 @@ def visualize_weights(x_train, loss, path):
     p = np.mean(x_train, axis=0)
     n = len(x_train)
 
+    # sorted_indices: pの選択順に訓練データのインデックスを並べたリスト
+    sorted_indices = np.array([])
     # remain_list: 選択されていない点のリスト
     remain_list = [i for i in range(n)]
 
-    # sorted_indices: pの選択順に訓練データのインデックスを並べたリスト
-    sorted_indices = []
+    # 最初はx_trainの平均点から最も遠い点を選択
+    indices = K_neighbor(x_train, p, n)
+    p_index = indices[n-1]
 
-    for i in range(n):
-        # 最初はx_trainの平均点から最も遠い点を選択
-        if i == 0:
-            indices = K_neighbor(x_train, p, n)
-            p_index = indices[n-1]
+    # p に選択されたデータのインデックスを保存
+    sorted_indices = np.append(sorted_indices, p_index)
+    # 次の p
+    p = x_train[p_index]
+    # remain_listから p を削除
+    remain_list.remove(p_index)
 
-        # それ以降は前に選択された点から最も近い点を選択
-        else:
-            indices = K_neighbor(np.delete(x_train, sorted_indices, axis=0), p, 1)
-            p_index = remain_list[indices[0]]    
-            
-        # pに選択されたデータのインデックスを保存していく
-        sorted_indices.append(p_index)
+    # p に近い順から選択していく
+    indices = K_neighbor(np.delete(x_train, sorted_indices, axis=0), p, n-1)
+    indices = np.array(remain_list)[indices] 
 
-        # 次の p
-        p = x_train[p_index]
-        # remain_listから p を削除
-        remain_list.remove(p_index)
+    # p に選択されたデータのインデックスを保存
+    sorted_indices = np.concatenate([sorted_indices, indices])
 
     # 結果からlossを並び替え
+    sorted_indices = sorted_indices.astype(int)
     loss = loss[:, sorted_indices]
 
-    # データの番号を確認する用のプロット
-    plt.plot(x_train[:, 0], x_train[:, 1], 'o')
-    for i in range(n):
-        num = sorted_indices[i]
-        plt.annotate(i, xy=(x_train[num, 0], x_train[num, 1]))
-    # plt.show()
-    plt.savefig(path + "label.png")
-    plt.close()
+    # # データの番号を確認する用のプロット
+    # plt.plot(x_train[:, 0], x_train[:, 1], 'o')
+    # for i in range(n):
+    #     num = sorted_indices[i]
+    #     plt.annotate(i, xy=(x_train[num, 0], x_train[num, 1]))
+    # # plt.show()
+    # plt.savefig(path + "label.png")
+    # plt.close()
 
     round_n = loss.shape[0]
 
@@ -222,7 +212,7 @@ def visualize_weights(x_train, loss, path):
     # plt.colorbar()
     plt.xticks([i for i in range(1, round_n+1, 5)],fontsize=12)
     # plt.show()
-    plt.savefig(path + "weights.png")
+    plt.savefig(path + "weights" + str(round) + ".png")
     plt.close()
 
 def init_visual(x, y, path):

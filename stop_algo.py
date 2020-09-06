@@ -18,14 +18,19 @@ import torchvision
 from torchvision import models, transforms
 
 import dataset
+from online import cal_loss, init_weights
+from visual import visualization, visualize_weights
 
-def fix_train_model(limit_acc, net, dataset_path, data_para, root_path, file_no,
-    num_epochs=50, batch_size=10, limit_phase="val"):
+def fix_train_model(limit_acc, net, dataset_path, data_num, mu, root_path, file_no,
+    num_epochs=50, batch_size=10, limit_phase="val", loss_type="p"):
 
     """
     モデルを訓練
 
     """
+
+    # ネットワークの重みを初期化
+    net.apply(init_weights)
 
     # 学習結果の保存用
     history = {
@@ -35,22 +40,26 @@ def fix_train_model(limit_acc, net, dataset_path, data_para, root_path, file_no,
     }
 
     # 入力データをロード
-    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.make_and_load_artifical_dataset(data_para[0], data_para[1])
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.make_and_load_artifical_dataset(data_num, mu)
 
     dataloaders_dict = {"train": dataloader_train, 
                         "val": dataloader_val, 
                         "test": dataloader_test}
 
     # パラメータ
-    lr = 10**(-4)
+    lr = 10**(-5.5)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=lr)
-    # optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.5)
-
-    # file_no = len(glob(root_path+"*.png"))
-
+    n = len(x_train)
+    # eta: 今回固定
+    eta = np.sqrt(8*np.log(n)/num_epochs)
+    sigma=10**(-4)
     # 停止フラグ
     stop_flag = False
+    # 累積損失
+    cumulative_loss = np.zeros(n)
+
+    virtual_loss_list = np.empty((0, n))
 
     # epochのループ
     for epoch in range(num_epochs):
@@ -91,9 +100,6 @@ def fix_train_model(limit_acc, net, dataset_path, data_para, root_path, file_no,
                     epoch_loss += loss.item() * _batch_size 
                     # 正解数の合計を更新
                     epoch_corrects += torch.sum(preds == labels.data)
-
-            # pを可視化
-            # visualization(net, x_train, y_train, y_train, p_list, epoch+1, "p", root_path + "p/")
                    
             # epochごとのlossと正解率を表示
             epoch_loss = epoch_loss / len(dataloaders_dict[phase].dataset)
@@ -106,9 +112,25 @@ def fix_train_model(limit_acc, net, dataset_path, data_para, root_path, file_no,
 
             # 上限accを越したら学習停止
             if epoch_acc >= limit_acc and phase == limit_phase:
-                print("{}_acc : {} >= {}\nstop at {} epoch!".format(phase, epoch_acc, limit_acc, epoch + 1))
+                print("{}_acc : {} >= {}\nstop at {} epoch!".format(phase, epoch_acc, limit_acc, epoch+1))
                 stop_flag = True
 
+        # pを可視化
+        loss_list, p_list, _ = cal_loss(net, dataloader_train, loss_type)
+
+        # 累積損失
+        cumulative_loss = cumulative_loss + loss_list
+
+        # 累積損失にガウス分布により乱数を足し算したものが損失
+        perturbation = np.random.normal(0, sigma, (n))
+        virtual_loss = cumulative_loss + eta*perturbation
+
+        # 各ラウンドごとの累積損失を保存
+        virtual_loss_list = np.append(virtual_loss_list, virtual_loss.reshape(1, n), axis=0)
+
+        visualization(net, x_train, y_train, y_train, p_list, epoch+1, "p", root_path + "p/")
+        visualization(net, x_train, y_train, y_train, loss_list, epoch+1, "l", root_path + "l/")
+        visualization(net, x_train, y_train, y_train, virtual_loss, epoch+1, "d", root_path + "d/")
 
         # 停止フラグが立ったら終了
         if stop_flag:
@@ -129,4 +151,7 @@ def fix_train_model(limit_acc, net, dataset_path, data_para, root_path, file_no,
     plt.ylabel('acc')
     plt.xticks(runs)
     plt.legend()
-    plt.savefig(root_path+"acc_"+str(file_no)+".png")
+    plt.savefig(root_path+"../acc_"+str(file_no)+".png")
+
+    # 重みの遷移を可視化
+    visualize_weights(x_train, virtual_loss_list, file_no, root_path+"../")

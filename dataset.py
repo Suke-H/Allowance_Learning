@@ -12,48 +12,6 @@ from torchvision import models, transforms
 def Random(a, b):
     """ aからbまでの一様乱数を返す """
     return (b - a) * np.random.rand() + a
-    
-def noisy_label_dataset(val_ratio,noise_ratio):
-    
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-
-    x_val = np.moveaxis(x_train, [3, 1, 2], [1, 2, 3]).astype('float32')[len(x_train)-int(len(x_train)*val_ratio):len(x_train)]
-    x_train = np.moveaxis(x_train, [3, 1, 2], [1, 2, 3]).astype('float32')[:len(x_train)-int(len(x_train)*val_ratio)]
-    x_test = np.moveaxis(x_test, [3, 1, 2], [1, 2, 3]).astype('float32')
-
-    x_train /= 255
-    x_val /= 255
-    x_test /= 255
-
-    label_list = [0,1,2,3,4,5,6,7,8,9]
-    
-    y_val = y_train.reshape(-1).astype('long')[len(x_train):]
-    y_val_rand = copy.copy(y_val)
-    for i in range(int(len(y_val)*noise_ratio)):
-        removedlist = copy.copy(label_list)
-        removedlist.remove(y_val_rand[i])
-        y_val_rand[i] = np.random.choice(removedlist)
-
-    
-    y_train = y_train.reshape(-1).astype('long')[:len(x_train)]
-    y_train_rand = copy.copy(y_train)
-    for i in range(int(len(y_train)*noise_ratio)):
-        removedlist = copy.copy(label_list)
-        removedlist.remove(y_train_rand[i])
-        y_train_rand[i] = np.random.choice(removedlist)
-
-    y_test = y_test.reshape(-1).astype('long')
-
-    ds_prob = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(y_train_rand))
-    dataloader_prob = data.DataLoader(dataset=ds_prob, batch_size=1000, shuffle=False)
-
-    ds_val = data.TensorDataset(torch.from_numpy(x_val), torch.from_numpy(y_val_rand))
-    dataloader_val = data.DataLoader(dataset=ds_val, batch_size=1000, shuffle=False)
-
-    ds_test = data.TensorDataset(torch.from_numpy(x_test), torch.from_numpy(y_test))
-    dataloader_test = data.DataLoader(dataset=ds_test, batch_size=1000, shuffle=True)
-    
-    return dataloader_prob, dataloader_val, dataloader_test, x_train, y_train_rand
 
 def make_artificial_data(n, phase="train"):
     """
@@ -215,7 +173,8 @@ def make_and_load_artifical_dataset(n, mu):
     ds_test = data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_t))
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
 
-    return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
+    # return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
+    return train_x, train_t, dataloader_train, dataloader_test
 
 class ImageTransform():
     """
@@ -231,64 +190,58 @@ class ImageTransform():
     def __call__(self, img):
         return self.data_transform(img)
 
-class Subset(torch.utils.data.Dataset):
-    """
-    インデックスを入力にデータセットの部分集合を取り出す
-    Arguments:
-        dataset : 入力データセット
-        indices : 取り出すデータセットのインデックス
-    """
-    def __init__(self, dataset, indices):
-        self.dataset = dataset
-        self.indices = indices
-
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
-
-    def __len__(self):
-        return len(self.indices)
-
 def MNIST_load():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # 前処理用の関数
     transform = ImageTransform()
     img_transformed = transform
 
     # データセット読み込み + 前処理
-    trainval_dataset = torchvision.datasets.MNIST(root='./data', 
+    train_dataset = torchvision.datasets.MNIST(root='./data', 
                         train=True, download=True, transform=img_transformed)
-
-    # 元々trainデータのものをtrain/valに分割
-    n_samples = len(trainval_dataset) # n_samples is 60000
-    train_size = int(n_samples * 0.8) # train_size is 48000
-
-    subset1_indices = list(range(0,train_size)) # [0,1,.....47999]
-    subset2_indices = list(range(train_size,n_samples)) # [48000,48001,.....59999]
-
-    train_dataset = Subset(trainval_dataset, subset1_indices)
-    val_dataset   = Subset(trainval_dataset, subset2_indices)
-
-    # データセット読み込み + 前処理
     test_dataset = torchvision.datasets.MNIST(root='./data', 
                     train=False, download=True, transform=img_transformed)
 
     # データセット読み込み + 前処理
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                    batch_size=100, shuffle=False, num_workers=2)
-    val_loader = torch.utils.data.DataLoader(val_dataset, 
-                    batch_size=100, shuffle=False, num_workers=2)                                         
-    test_loader = torch.utils.data.DataLoader(test_dataset, 
-                    batch_size=100, shuffle=False, num_workers=2)
+    # train_loader = torch.utils.data.DataLoader(train_dataset,
+    #                 batch_size=100, shuffle=False, num_workers=2)
+    # val_loader = torch.utils.data.DataLoader(val_dataset, 
+    #                 batch_size=100, shuffle=False, num_workers=2)                                         
+    # test_loader = torch.utils.data.DataLoader(test_dataset, 
+    #                 batch_size=100, shuffle=False, num_workers=2)
 
-    # 小分け
-    train_x = np.array([train_dataset[i][0].cpu().numpy() for i in range(48000)])
-    train_y = np.array([train_dataset[i][1] for i in range(48000)])
-    val_x = np.array([val_dataset[i][0].cpu().numpy() for i in range(12000)])
-    val_y = np.array([val_dataset[i][1] for i in range(12000)])
+    # numpyに変換
+    train_x = np.array([train_dataset[i][0].cpu().numpy() for i in range(60000)])
+    train_y = np.array([train_dataset[i][1] for i in range(60000)])
     test_x = np.array([test_dataset[i][0].cpu().numpy() for i in range(10000)])
     test_y = np.array([test_dataset[i][1] for i in range(10000)])
 
-    print(train_x.shape)
+    # 0と1の画像だけにする
+    train_indices = np.where((train_y == 0) | (train_y == 1))
+    train_x, train_y = train_x[train_indices], train_y[train_indices]
 
-# if __name__ == '__main__':
+    test_indices = np.where((test_y == 0) | (test_y == 1))
+    test_x, test_y = test_x[test_indices], test_y[test_indices]
+
+    # datasetオブジェクト作成
+    train_x_tensor = torch.Tensor(train_x).to(device)
+    # train_y_tensor = torch.Tensor(train_y, dtype=torch.long).to(device)
+    train_y_tensor = torch.tensor(train_y, dtype=torch.long)
+    train_dataset = torch.utils.data.TensorDataset(train_x_tensor, train_y_tensor)
+
+    test_x_tensor = torch.Tensor(test_x).to(device)
+    # test_y_tensor = torch.Tensor(test_y, dtype=torch.long).to(device)
+    test_y_tensor = torch.tensor(test_y, dtype=torch.long)
+    test_dataset = torch.utils.data.TensorDataset(test_x_tensor, test_y_tensor)
+
+    # dataloaderオブジェクト作成
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, shuffle=False)
+
+    return train_x, train_y, train_loader, test_loader, train_dataset
+
+
+if __name__ == '__main__':
     # make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)
-    # MNIST_load()
+    MNIST_load()

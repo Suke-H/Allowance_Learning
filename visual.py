@@ -11,6 +11,7 @@ import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from time import time
+from sklearn.manifold import TSNE
 
 def Random(a, b):
     """ aからbまでの一様乱数を返す """
@@ -158,10 +159,14 @@ def visualize_weights(x_train, loss, round, path):
 
     """
 
+    n = len(x_train)
+
+    # reshape
+    x_train = x_train.reshape(n, 28*28)
+
     # p: 選択された点
     # 最初はx_trainの平均点で初期化
     p = np.mean(x_train, axis=0)
-    n = len(x_train)
 
     # sorted_indices: pの選択順に訓練データのインデックスを並べたリスト
     sorted_indices = np.array([])
@@ -206,7 +211,8 @@ def visualize_weights(x_train, loss, round, path):
     loss_normed = np.array([(loss[i] - loss_min[i]) / (loss_max[i] - loss_min[i]) for i in range(round_n)])
 
     # 重みの可視化
-    plt.imshow(loss_normed.T, cmap='Reds', aspect=0.1)
+    # plt.imshow(loss_normed.T, cmap='Reds', aspect=0.1)
+    plt.imshow(loss_normed.T, cmap='Reds', aspect=0.005)
     plt.xlabel("rounds")
     plt.ylabel("datas")
     # plt.colorbar()
@@ -264,4 +270,56 @@ def visualization(net, x, y, true_y, loss, epoch, vis_type, path):
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")
+    plt.close()
+
+def display30(dataset, indices, tune_epoch, out_path):
+
+    #表示領域を設定（行，列）
+    fig, ax = plt.subplots(5, 6)  
+
+    #図を配置
+    for i, (idx) in enumerate(indices):
+        plt.subplot(5,6,i+1)
+        title = str(idx) + "(" + str(dataset[idx][1].item()) + ")"
+        plt.title(title, fontsize=10)    #タイトルを付ける
+        plt.tick_params(color='white')      #メモリを消す
+        plt.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
+        plt.imshow(dataset[idx][0].reshape(28,28), cmap="gray")   #図を入れ込む
+
+    #図が重ならないようにする
+    plt.tight_layout()
+
+    #保存
+    plt.savefig(out_path + "display_" + str(tune_epoch) + ".png")
+    plt.close()
+
+def tSNE(x, t, k_index, tune_epoch, out_path):
+
+    n = len(x)
+
+    # reshape
+    x = x.reshape(n, 28*28)
+
+    # 改変ラベルを1000個選択
+    k_index = np.random.choice(k_index, 1000, replace=False)
+    x_change = x[k_index]
+    t_change = t[k_index]
+
+    x_change_reduced = TSNE(n_components=2, random_state=0).fit_transform(x_change)
+
+    # 改変ラベル以外を2000個選択
+    else_index = np.delete(np.array([i for i in range(n)]), k_index)
+    else_index = np.random.choice(else_index, 2000, replace=False)
+
+    x_else = x[else_index]
+    t_else = t[else_index]
+
+    x_else_reduced = TSNE(n_components=2, random_state=0).fit_transform(x_else)
+
+    plt.scatter(x_change_reduced[:, 0], x_change_reduced[:, 1], c=t_change, marker="x")
+    plt.scatter(x_else_reduced[:, 0], x_else_reduced[:, 1], c=t_else, marker=".")
+    plt.colorbar()
+
+    #保存
+    plt.savefig(out_path + "tSNE_" + str(tune_epoch) + ".png")
     plt.close()

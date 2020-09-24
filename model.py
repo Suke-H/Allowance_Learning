@@ -33,6 +33,25 @@ class SimpleNet2(torch.nn.Module):
 
         return self.fc6(x)
 
+class SimpleNet3(torch.nn.Module):
+    def __init__(self):
+        super(SimpleNet3, self).__init__()
+        self.fc1 = torch.nn.Linear(2, 20)
+        self.fc2 = torch.nn.Linear(20, 20)
+        self.fc3 = torch.nn.Linear(20, 20)
+        self.fc4 = torch.nn.Linear(20, 20)
+        self.fc5 = torch.nn.Linear(20, 20)
+        self.fc6 = torch.nn.Linear(20, 4)
+ 
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+
+        return self.fc6(x)
+
 # モデル定義
 # class MNISTNet(torch.nn.Module):
 #     def __init__(self):

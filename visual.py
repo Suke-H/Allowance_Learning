@@ -83,8 +83,54 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
 
     grid0, grid1 = grid_x[index0], grid_x[index1]
 
-    ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="lightgray", label=label0, zorder=1)
-    ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="gray", label=label1, zorder=1)
+    ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="palevioletred", label=label0, zorder=1)
+    ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="lightsteelblue", label=label1, zorder=1)
+
+    # # 凡例の表示
+    # ax1.legend(markerscale=3, fontsize=16)
+
+def visualize_multi_classify(ax1, net, aabb, grid_num=100):
+    """
+    識別関数を可視化
+
+    Attribute
+    grid_num: AABBの範囲でグリットを刻む回数
+    aabb: AABB(Axis Aligned Bounding Box)の座標[xmin, xmax, ymin, ymax]
+
+    """
+    ### 格子点を入力する準備
+    x = np.linspace(aabb[0], aabb[1], grid_num)
+    y = np.linspace(aabb[2], aabb[3], grid_num)
+    xx, yy = np.meshgrid(x,y)
+    xy = np.stack([xx, yy])
+    xy = xy.T.reshape(grid_num**2, 2)
+
+    # 入力データ
+    grid_x = np.array(xy, dtype="float32")
+    grid_x = torch.from_numpy(grid_x)
+
+    # 格子点を入力にする
+    grid_output = net(grid_x)
+    # ラベルを予測
+    _, grid_y = torch.max(grid_output, 1)  
+
+    ### 識別関数 可視化
+    # グリッドをクラス分け
+    index0 = np.where(grid_y == 0)
+    index1 = np.where(grid_y == 1)
+    index2 = np.where(grid_y == 2)
+    index3 = np.where(grid_y == 3)
+    label0 = "0"
+    label1 = "1"
+    label2 = "2"
+    label3 = "3"
+
+    grid0, grid1, grid2, grid3 = grid_x[index0], grid_x[index1], grid_x[index2], grid_x[index3]
+
+    ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="palevioletred", label=label0, zorder=1)
+    ax1.plot(grid1[:, 0], grid1[:, 1],marker=".",linestyle="None",color="lightsteelblue", label=label1, zorder=1)
+    ax1.plot(grid2[:, 0], grid2[:, 1],marker=".",linestyle="None",color="navajowhite", label=label2, zorder=1)
+    ax1.plot(grid3[:, 0], grid3[:, 1],marker=".",linestyle="None",color="orchid", label=label3, zorder=1)
 
     # # 凡例の表示
     # ax1.legend(markerscale=3, fontsize=16)
@@ -139,6 +185,190 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
 
     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
+# def visualize_multi_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
+#     """
+#     データをどのように斟酌したか可視化
+#     各データの位置・ラベル(改変済み)・損失を同時にプロット
+
+#     Attribute
+#     x, y: データ(訓練データ等), 正解ラベル(改変済み)
+#     loss: 各データの損失
+
+#     """
+#     n = len(x)
+
+#     # color-map
+#     cm = plt.get_cmap(cmap_type, color_step)
+
+#     # lossを正規化(min ~ max -> 0 ~ 1)
+#     loss_max, loss_min = np.max(loss), np.min(loss)
+
+#     if loss_min != loss_max:
+#         loss = (loss - loss_min) / (loss_max - loss_min)
+
+#     # lossを(0, 1, ..., color_step-1)の離散値に変換
+#     loss_digit = (loss // (1 / color_step)).astype(np.int)
+
+#     # loss_digitの値がcolor_stepのものがあればcolor_step-1に置き換え
+#     loss_digit = np.where(loss_digit == color_step, color_step-1, loss_digit)
+
+#     # 
+#     index_0 = np.where(true_y == 0)
+#     index_1 = np.where(true_y == 1)
+#     index_2 = np.where(true_y == 2)
+#     index_3 = np.where(true_y == 3)
+
+#     # (改変前)label 0
+#     ax1.scatter(x[index_0, 0], x[index_0, 1], marker='o', color=cm(loss[index_0]), zorder=2)
+#     # (改変前)label 1
+#     ax1.scatter(x[index_1, 0], x[index_1, 1], marker='x', color=cm(loss[index_1]), zorder=2)
+#     # (改変前)label 2
+#     ax1.scatter(x[index_2, 0], x[index_2, 1], marker='^', color=cm(loss[index_2]), zorder=2)
+#     # (改変前)label 3
+#     ax1.scatter(x[index_3, 0], x[index_3, 1], marker='x', color=cm(loss[index_3]), zorder=2)
+
+#     # ax1.set_title("round: {}".format(epoch))
+
+#     # 凡例の表示
+#     ax1.legend(markerscale=3, fontsize=14)
+
+#     # color-barを表示
+#     gradient = np.linspace(0, 1, cm.N)
+#     gradient_array = np.vstack((gradient, gradient))
+    
+#     ax2.imshow(gradient_array, aspect='auto', cmap=cm)
+#     ax2.set_axis_off()
+
+#     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
+
+def visualize_allowance_simple(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
+    """
+    データをどのように斟酌したか可視化
+    各データの位置・ラベル(改変済み)・損失を同時にプロット
+
+    Attribute
+    x, y: データ(訓練データ等), 正解ラベル(改変済み)
+    loss: 各データの損失
+
+    """
+    n = len(x)
+
+    # color-map
+    cm = plt.get_cmap(cmap_type, color_step)
+
+    # 場合分け
+    index_0_kaihen = np.where((true_y == 0) & (true_y ^ y == 1))
+    index_1_kaihen = np.where((true_y == 1) & (true_y ^ y == 1))
+    index_0 = np.where((true_y == 0) & (true_y ^ y == 0))
+    index_1 = np.where((true_y == 1) & (true_y ^ y == 0))
+
+    # (改変前)label 0
+    ax1.scatter(x[index_0, 0], x[index_0, 1], marker='o', color='r', zorder=2)
+    # (改変前)label 1
+    ax1.scatter(x[index_1, 0], x[index_1, 1], marker='o', color='b', zorder=2)
+    # (改変前)label 0
+    ax1.scatter(x[index_0_kaihen, 0], x[index_0_kaihen, 1], s=40, facecolors='none', edgecolors='r', zorder=2)
+    # (改変前)label 1
+    ax1.scatter(x[index_1_kaihen, 0], x[index_1_kaihen, 1], s=40, facecolors='none', edgecolors='b', zorder=2)
+
+    # ax1.set_title("round: {}".format(epoch))
+
+    # 凡例の表示
+    # ax1.legend(markerscale=3, fontsize=14)
+
+    # color-barを表示
+    gradient = np.linspace(0, 1, cm.N)
+    gradient_array = np.vstack((gradient, gradient))
+    
+    ax2.imshow(gradient_array, aspect='auto', cmap=cm)
+    ax2.set_axis_off()
+
+    ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
+
+def visualize_allowance_simple_multi(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
+    """
+    データをどのように斟酌したか可視化
+    各データの位置・ラベル(改変済み)・損失を同時にプロット
+
+    Attribute
+    x, y: データ(訓練データ等), 正解ラベル(改変済み)
+    loss: 各データの損失
+
+    """
+    n = len(x)
+
+    # color-map
+    cm = plt.get_cmap(cmap_type, color_step)
+
+    # print(y)
+    # print(true_y)
+
+    # 場合分け
+    # index_0_kaihen = np.where((true_y == 0) & (true_y ^ y == 1))
+    # index_1_kaihen = np.where((true_y == 1) & (true_y ^ y == 1))
+    # index_2_kaihen = np.where((true_y == 2) & (true_y ^ y == 1))
+    # index_3_kaihen = np.where((true_y == 3) & (true_y ^ y == 1))
+
+    # index_0 = np.where((true_y == 0) & (true_y ^ y == 0))
+    # index_1 = np.where((true_y == 1) & (true_y ^ y == 0))
+    # index_2 = np.where((true_y == 2) & (true_y ^ y == 0))
+    # index_3 = np.where((true_y == 3) & (true_y ^ y == 0))
+
+    # index_0_kaihen = np.where((true_y == 0) & (true_y != y))
+    # index_1_kaihen = np.where((true_y == 1) & (true_y != y))
+    # index_2_kaihen = np.where((true_y == 2) & (true_y != y))
+    # index_3_kaihen = np.where((true_y == 3) & (true_y != y))
+
+    index_0_kaihen = np.where((y == 0) & (true_y != y))
+    index_1_kaihen = np.where((y == 1) & (true_y != y))
+    index_2_kaihen = np.where((y == 2) & (true_y != y))
+    index_3_kaihen = np.where((y == 3) & (true_y != y))
+
+    # index_0 = np.where((true_y == 0) & (true_y == y))
+    # index_1 = np.where((true_y == 1) & (true_y == y))
+    # index_2 = np.where((true_y == 2) & (true_y == y))
+    # index_3 = np.where((true_y == 3) & (true_y == y))
+
+    index_0 = np.where(true_y == 0)
+    index_1 = np.where(true_y == 1)
+    index_2 = np.where(true_y == 2)
+    index_3 = np.where(true_y == 3)
+
+    # print(index_0_kaihen[0].shape, index_1_kaihen[0].shape, index_2_kaihen[0].shape, index_3_kaihen[0].shape, 
+    # index_0[0].shape, index_1[0].shape, index_2[0].shape, index_3[0].shape)
+
+    # (改変前)label 0
+    ax1.scatter(x[index_0, 0], x[index_0, 1], marker='o', color='r', zorder=2)
+    # (改変前)label 1
+    ax1.scatter(x[index_1, 0], x[index_1, 1], marker='o', color='b', zorder=2)
+    # (改変前)label 2
+    ax1.scatter(x[index_2, 0], x[index_2, 1], marker='o', color='orange', zorder=2)
+    # (改変前)label 3
+    ax1.scatter(x[index_3, 0], x[index_3, 1], marker='o', color='purple', zorder=2)
+
+    # (改変前)label 0
+    ax1.scatter(x[index_0_kaihen, 0], x[index_0_kaihen, 1], s=60, facecolors='none', edgecolors='r', zorder=3)
+    # (改変前)label 1
+    ax1.scatter(x[index_1_kaihen, 0], x[index_1_kaihen, 1], s=60, facecolors='none', edgecolors='b', zorder=3)
+    # (改変前)label 2
+    ax1.scatter(x[index_2_kaihen, 0], x[index_2_kaihen, 1], s=60, facecolors='none', edgecolors='orange', zorder=3)
+    # (改変前)label 3
+    ax1.scatter(x[index_3_kaihen, 0], x[index_3_kaihen, 1], s=60, facecolors='none', edgecolors='purple', zorder=3)
+
+    # ax1.set_title("round: {}".format(epoch))
+
+    # 凡例の表示
+    # ax1.legend(markerscale=3, fontsize=14)
+
+    # color-barを表示
+    gradient = np.linspace(0, 1, cm.N)
+    gradient_array = np.vstack((gradient, gradient))
+    
+    ax2.imshow(gradient_array, aspect='auto', cmap=cm)
+    ax2.set_axis_off()
+
+    ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
+
 def visualize_weights(x_train, loss, round, path):
     """
     各ラウンドにおける各訓練データの損失の遷移を可視化
@@ -162,7 +392,7 @@ def visualize_weights(x_train, loss, round, path):
     n = len(x_train)
 
     # reshape
-    x_train = x_train.reshape(n, 28*28)
+    # x_train = x_train.reshape(n, 28*28)
 
     # p: 選択された点
     # 最初はx_trainの平均点で初期化
@@ -211,8 +441,8 @@ def visualize_weights(x_train, loss, round, path):
     loss_normed = np.array([(loss[i] - loss_min[i]) / (loss_max[i] - loss_min[i]) for i in range(round_n)])
 
     # 重みの可視化
-    # plt.imshow(loss_normed.T, cmap='Reds', aspect=0.1)
-    plt.imshow(loss_normed.T, cmap='Reds', aspect=0.005)
+    plt.imshow(loss_normed.T, cmap='Reds', aspect=0.1)
+    # plt.imshow(loss_normed.T, cmap='Reds', aspect=0.005)
     plt.xlabel("rounds")
     plt.ylabel("datas")
     # plt.colorbar()
@@ -266,7 +496,41 @@ def visualization(net, x, y, true_y, loss, epoch, vis_type, path):
     visualize_classify(ax1, net, aabb)
 
     # 斟酌の可視化
-    visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
+    # visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
+    visualize_allowance_simple(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
+
+
+    # plt.show()
+    plt.savefig(path + str(epoch) + ".png")
+    plt.close()
+
+def visualization_multi(net, x, y, true_y, loss, epoch, vis_type, path):
+    """
+    Attribute
+
+    net: 学習モデル
+    x, y: データ(訓練データ等), 正解ラベル(改変済み)
+    loss: 各データの損失
+
+    epoch: 何エポック目での可視化か
+    vis_type: lossかpかdか
+    path: 保存するフォルダのパス
+
+    """
+    # グラフ作成
+    fig = plt.figure()
+    ax1  = fig.add_axes((0.1,0.3,0.8,0.6))
+    ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
+
+    # aabb(点を覆うxy軸平行な長方形)の座標
+    aabb = [np.min(x[:, 0]), np.max(x[:, 0]), np.min(x[:, 1]), np.max(x[:, 1])]
+
+    # 識別関数の可視化
+    visualize_multi_classify(ax1, net, aabb)
+
+    # 斟酌の可視化
+    # visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
+    visualize_allowance_simple_multi(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")

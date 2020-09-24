@@ -123,9 +123,12 @@ def fuzzy_dataset(n, mu):
 
 def make_artificial_dataset(path, data_fanc):
     # データセット作成
-    train_x, train_t = data_fanc(200)
-    val_x, val_t = data_fanc(100)
-    test_x, test_t = data_fanc(100)
+    # train_x, train_t = data_fanc(1000, 1)
+    # val_x, val_t = data_fanc(1000, 1)
+    # test_x, test_t = data_fanc(1000, 1)
+    train_x, train_t = data_fanc(1000)
+    val_x, val_t = data_fanc(1000)
+    test_x, test_t = data_fanc(1000)
 
     # データ保存
     np.save(path + "train_x", train_x)
@@ -146,13 +149,13 @@ def load_artifical_dataset(path):
 
     # numpy -> Dataset -> DataLoader
     ds_prob = data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_t))
-    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=10, shuffle=False)
+    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=200, shuffle=False)
 
     ds_val = data.TensorDataset(torch.from_numpy(val_x), torch.from_numpy(val_t))
-    dataloader_val = data.DataLoader(dataset=ds_val, batch_size=100, shuffle=False)
+    dataloader_val = data.DataLoader(dataset=ds_val, batch_size=200, shuffle=False)
 
     ds_test = data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_t))
-    dataloader_test = data.DataLoader(dataset=ds_test, batch_size=100, shuffle=True)
+    dataloader_test = data.DataLoader(dataset=ds_test, batch_size=200, shuffle=True)
 
     # return dataloader_train, dataloader_val, dataloader_test
     return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
@@ -218,11 +221,13 @@ def MNIST_load():
     test_y = np.array([test_dataset[i][1] for i in range(10000)])
 
     # 0と1の画像だけにする
-    train_indices = np.where((train_y == 0) | (train_y == 1))
+    train_indices = np.where((train_y == 7) | (train_y == 1))
     train_x, train_y = train_x[train_indices], train_y[train_indices]
+    train_y = np.where(train_y == 7, 0, train_y)
 
-    test_indices = np.where((test_y == 0) | (test_y == 1))
+    test_indices = np.where((test_y == 7) | (test_y == 1))
     test_x, test_y = test_x[test_indices], test_y[test_indices]
+    test_y = np.where(test_y == 7, 0, test_y)
 
     # datasetオブジェクト作成
     train_x_tensor = torch.Tensor(train_x).to(device)
@@ -241,7 +246,45 @@ def MNIST_load():
 
     return train_x, train_y, train_loader, test_loader, train_dataset
 
+def multi_dataset(n):
+    """
+    -1 <= x, y <= 1での一様乱数により作られた2次元のデータを
+    label 0: 第1象限(右上)
+    label 1: 第2象限(左上)
+    label 2: 第3象限(左下)
+    label 3: 第4象限(右下)
+    の4クラスにしたデータ
+    """
+
+    # 正解ラベル
+    labels = np.array([int(i/int(n/4)) for i in range(n)])
+    # データ
+    dataset = np.zeros((n, 2))
+
+    for i, label in enumerate(labels):
+
+        # label 0
+        if label == 0:
+            dataset[i] = [Random(0, 1), Random(0, 1)]
+
+        # label 1
+        elif label == 1:
+            dataset[i] = [Random(-1, 0), Random(0, 1)]
+
+        # label 2
+        elif label == 2:
+            dataset[i] = [Random(-1, 0), Random(-1, 0)]
+
+        # label 3
+        else:
+            dataset[i] = [Random(0, 1), Random(-1, 0)]
+
+    # シャッフル
+    perm = np.random.permutation(n)
+    dataset, labels = dataset[perm], labels[perm]
+
+    return np.array(dataset, dtype="float32"), np.array(labels, dtype="int")
 
 if __name__ == '__main__':
-    # make_artificial_dataset("data/fuzzy_data_u1_b10/", fuzzy_dataset)
-    MNIST_load()
+    # make_artificial_dataset("data/dataset/fuzzy_1000_1/", fuzzy_dataset)
+    make_artificial_dataset("data/dataset/multi_1000/", multi_dataset)

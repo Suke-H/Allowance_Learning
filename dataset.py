@@ -126,9 +126,12 @@ def make_artificial_dataset(path, data_fanc):
     # train_x, train_t = data_fanc(1000, 1)
     # val_x, val_t = data_fanc(1000, 1)
     # test_x, test_t = data_fanc(1000, 1)
-    train_x, train_t = data_fanc(1000)
-    val_x, val_t = data_fanc(1000)
-    test_x, test_t = data_fanc(1000)
+    train_x, train_t = data_fanc(1000, 2)
+    val_x, val_t = data_fanc(1000, 2)
+    test_x, test_t = data_fanc(1000, 2)
+    # train_x, train_t = data_fanc(1000)
+    # val_x, val_t = data_fanc(1000)
+    # test_x, test_t = data_fanc(1000)
 
     # データ保存
     np.save(path + "train_x", train_x)
@@ -285,6 +288,33 @@ def multi_dataset(n):
 
     return np.array(dataset, dtype="float32"), np.array(labels, dtype="int")
 
+def multi_fuzzy_dataset(n, mu):
+    # 平均
+    mu0 = [mu, mu]
+    mu1 = [-mu, mu]
+    mu2 = [-mu, -mu]
+    mu3 = [mu, -mu]
+
+    # 分散(共通)
+    sigma = [[1, 0], [0, 1]]
+    
+    # 2次元正規乱数によりデータ生成
+    data0 = np.random.multivariate_normal(mu0, sigma, int(n // 4))
+    data1 = np.random.multivariate_normal(mu1, sigma, int(n // 4))
+    data2 = np.random.multivariate_normal(mu2, sigma, int(n // 4))
+    data3 = np.random.multivariate_normal(mu3, sigma, int(n // 4))
+    datas = np.concatenate([data0, data1, data2, data3], axis=0).astype(np.float32)
+
+    # ラベル
+    labels = np.array([int(i/int(n/4)) for i in range(n)])
+
+    # シャッフル
+    perm = np.random.permutation(n)
+    datas, labels = datas[perm], labels[perm]
+
+    return datas, labels
+
 if __name__ == '__main__':
     # make_artificial_dataset("data/dataset/fuzzy_1000_1/", fuzzy_dataset)
-    make_artificial_dataset("data/dataset/multi_1000/", multi_dataset)
+    # make_artificial_dataset("data/dataset/multi_1000/", multi_dataset)
+    make_artificial_dataset("data/dataset/multi_fuzzy_1000_2/", multi_fuzzy_dataset)

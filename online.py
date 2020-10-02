@@ -12,7 +12,8 @@ from time import time
 
 import dataset
 import model
-from visual import visualization, acc_plot, init_visual, visualize_weights, display30, tSNE, visualization_multi
+from visual import visualization, acc_plot, acc_plot2, init_visual, visualize_weights, display30, tSNE, visualization_multi
+from net_test import net_test 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -262,7 +263,129 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
         visualization(Model, x_train, flip_y_train, y_train, loss_list, epoch, "loss", out_path + "l/")
     
     # 学習曲線をプロット
-    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path+"../", tune_epoch)
+    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path, tune_epoch)
+
+    # 重みの遷移を可視化
+    visualize_weights(x_train, virtual_loss_list, tune_epoch, out_path+"../")
+
+def online_check(acc, Model, dataset_path, out_path, tune_epoch, 
+            batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
+            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
+            ):
+    
+    torch.manual_seed(1)
+
+    # 入力データをロード
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+    # x_train, y_train, dataloader_train, dataloader_test = dataset.make_and_load_artifical_dataset(data_num, mu)
+
+    # 入力データを可視化
+    init_visual(x_train, y_train, out_path)
+
+    # ネットワークの重みを初期化
+    Model.apply(init_weights)
+
+    # n: データ数
+    n = len(x_train)
+    # k: 改変するデータ数
+    k = int(n * (1-acc))
+    # eta: 今回固定
+    eta = np.sqrt(8*np.log(n)/online_epoch)
+
+    # パラメータ
+    lr = 10**(-2)
+    Criterion = nn.CrossEntropyLoss()
+    Optimizer = optim.Adam(Model.parameters(), lr=lr)
+
+    train_acc_ori_list = []
+    train_acc_change_list = []
+    test_acclist = []
+    virtual_loss_list = np.empty((0, n))
+
+    ###
+    check_acclist = []
+
+    #===algorithm setting===
+
+    #============================================
+    # algorithm = "WAA"
+    # w = np.array([1/n for i in range(n)])
+    #============================================
+
+    #============================================
+    # 累積損失
+    cumulative_loss = np.zeros(n)
+    # データのインデックスから損失の小さいtop-kを順に並べたもの
+    xt = np.array(random.sample(range(0,n),k=k))
+    #============================================
+        
+    for epoch in range(1, online_epoch+1):
+
+        start = time()
+
+        # print("\n--- Epoch : %2d ---" % epoch)
+        xt = np.sort(xt)
+
+        # 損失の小さいtop-kをひっくり返す
+        flip_y_train = np.copy(y_train)
+        flip_y_train[xt] = (y_train[xt] + 1) % 2
+        
+        # dataset, dataloader作成
+        ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
+        dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=False)
+
+        # ネットワークの重みを初期化
+        if reset_flag:
+            Model.apply(init_weights)
+
+        # 学習
+        for i in range(train_epoch):
+            train(Model, dataloader_fliped, Optimizer, Criterion)
+
+        # 損失を返す
+        loss_list, p_list, train_acc_change = cal_loss(Model, dataloader_fliped, loss_type)
+
+        # 累積損失
+        cumulative_loss = cumulative_loss + loss_list
+
+        # 累積損失にガウス分布により乱数を足し算したものが損失
+        perturbation = np.random.normal(0, sigma, (n))
+        virtual_loss = cumulative_loss + eta*perturbation
+
+        # 損失の小さいtop-k個を選択
+        xt = np.argsort(virtual_loss)[:k]
+
+        # 改変前の訓練データのacc
+        train_acc_ori = eval(Model, dataloader_train)
+        # テストデータのacc
+        test_acc = eval(Model, dataloader_test)
+
+        ### チェック
+        check_acc = net_test(train_epoch, dataloader_fliped, Optimizer, Criterion)
+        
+        # 各ラウンドごとのaccを保存
+        train_acc_ori_list.append(train_acc_ori)
+        train_acc_change_list.append(train_acc_change)
+        test_acclist.append(test_acc)
+
+        ###
+        check_acclist.append(check_acc)
+
+        # 各ラウンドごとの累積損失を保存
+        virtual_loss_list = np.append(virtual_loss_list, virtual_loss.reshape(1, n), axis=0)
+
+        # 可視化
+        # visualization(Model, x_train, flip_y_train, virtual_loss, epoch, "data/result/try1/d/")
+        # visualization(Model, x_train, flip_y_train, p_list, epoch, "data/result/try1/p/")
+        # visualization(Model, x_train, flip_y_train, loss_list, epoch, "data/result/try1/l/")
+        visualization(Model, x_train, flip_y_train, y_train, virtual_loss, epoch, "d", out_path + "d/")
+        visualization(Model, x_train, flip_y_train, y_train, p_list, epoch, "p", out_path + "p/")
+        visualization(Model, x_train, flip_y_train, y_train, loss_list, epoch, "loss", out_path + "l/")
+    
+    ### 学習曲線をプロット
+    acc_plot2(train_acc_ori_list, train_acc_change_list, test_acclist, check_acclist, acc, out_path+"../", tune_epoch)
+    # acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path, tune_epoch)
 
     # 重みの遷移を可視化
     visualize_weights(x_train, virtual_loss_list, tune_epoch, out_path+"../")
@@ -366,8 +489,9 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
             # 各ラウンドごとの累積損失を保存
             virtual_loss_list = np.append(virtual_loss_list, virtual_loss.reshape(1, n), axis=0)
 
-    # 学習曲線をプロット
-    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path, tune_epoch)
+    ### 学習曲線をプロット
+    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, check_acclist, acc, out_path+"../", tune_epoch)
+    # acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path, tune_epoch)
 
     # 重みの遷移を可視化
     visualize_weights(x_train, virtual_loss_list, tune_epoch, out_path)
@@ -399,7 +523,8 @@ def online_multi(acc, Model, dataset_path, out_path, tune_epoch,
     # n: データ数
     n = len(x_train)
     # k: 改変するデータ数
-    k = int(n * (1-acc))
+    k = round(n * (1-acc))
+    print(k)
     # eta: 今回固定
     eta = np.sqrt(8*np.log(n)/online_epoch)
 
@@ -442,7 +567,11 @@ def online_multi(acc, Model, dataset_path, out_path, tune_epoch,
 
         # 損失の小さいtop-kをひっくり返す
         flip_y_train = np.copy(y_train)
-        flip_y_train[xt] = np.argmin(p_list[xt], axis=1)
+
+        # 元のラベルを除く最大のクラスを改変ラベルにする
+        p_temp_list = np.copy(p_list)
+        p_temp_list[[i for i in range(n)], y_train] = 0
+        flip_y_train[xt] = np.argmax(p_temp_list[xt], axis=1)
         
         # dataset, dataloader作成
         ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
@@ -486,7 +615,7 @@ def online_multi(acc, Model, dataset_path, out_path, tune_epoch,
         visualization_multi(Model, x_train, flip_y_train, y_train, virtual_loss, epoch, "d", out_path + "d/")
     
     # 学習曲線をプロット
-    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path+"../", tune_epoch)
+    acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path, tune_epoch)
 
     # 重みの遷移を可視化
     visualize_weights(x_train, virtual_loss_list, tune_epoch, out_path+"../")

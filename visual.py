@@ -49,6 +49,28 @@ def acc_plot(train_accs_ori, train_accs_change, test_accs, goal_acc, root_path, 
     plt.savefig(root_path+"acc_"+str(file_no)+".png", bbox_inches='tight')
     plt.close()
 
+def acc_plot2(train_accs_ori, train_accs_change, test_accs, check_accs, goal_acc, root_path, file_no):
+    """ 学習記録(epoch-acc)をプロット """
+
+    end_epoch = len(train_accs_ori)
+
+    plt.figure()
+    runs = [i for i in range(1, end_epoch+1)]
+    plt.plot(runs, train_accs_ori, label='train_acc_ori')
+    plt.plot(runs, train_accs_change, label='train_acc_change')
+    plt.plot(runs, test_accs, label='test_acc')
+    plt.plot(runs, check_accs, label='check_accs')
+    plt.plot(runs, [goal_acc for i in range(end_epoch)], label='goal_acc')
+    plt.xlabel('round',fontsize=16)
+    plt.ylabel('acc',fontsize=16)
+    plt.xticks([i for i in range(1, end_epoch+1, 5)],fontsize=12)
+    plt.yticks(fontsize=12)
+
+    plt.legend(fontsize=15)
+    # plt.rc('legend', fontsize=20)
+    plt.savefig(root_path+"acc_"+str(file_no)+".png", bbox_inches='tight')
+    plt.close()
+
 def visualize_classify(ax1, net, aabb, grid_num=100):
     """
     識別関数を可視化

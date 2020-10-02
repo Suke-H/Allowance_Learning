@@ -20,17 +20,19 @@ if __name__ == '__main__':
     torch.manual_seed(1)
 
     # パラメータ
-    epochs = 2
+    epochs = 50
     lr = 10**(-2)
 
-    # Model = model.SimpleNet().to(device)
-    Model = model.MNISTNet().to(device)
+    Model = model.SimpleNet2().to(device)
+    # Model = model.MNISTNet().to(device)
     criterion = nn.CrossEntropyLoss()
     # optimizer = optim.SGD(Model.parameters(), lr=lr)
     optimizer = optim.Adam(Model.parameters(), lr=lr)
 
     # x_train, y_train, dataloader_train, dataloader_test = dataset.make_and_load_artifical_dataset(1000, 1)
-    x_train, y_train, dataloader_train, dataloader_test = dataset.MNIST_load()
+    dataset_path = "data/dataset/fuzzy_1000_1/"
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+    # x_train, y_train, dataloader_train, dataloader_test = dataset.MNIST_load()
 
     train_acclist = []
     test_acclist = []
@@ -47,4 +49,4 @@ if __name__ == '__main__':
         print(train_acc, test_acc)
         
     # 学習曲線をプロット
-    acc_plot(train_acclist, test_acclist, test_acclist, 0.7, "data/result/tuning/mnist/test/2/", epochs)
+    acc_plot(train_acclist, test_acclist, test_acclist, 0.7, "data/result/tuning/dnn_performance", epochs)

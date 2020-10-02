@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from time import time
 
-from online import online, online_MNIST, online_multi
+from online import online, online_MNIST, online_multi, online_check
 from model import SimpleNet2, MNISTNet, SimpleNet3
 from stop_algo import fix_train_model
 import dataset
@@ -15,13 +15,14 @@ def tuning():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    acc = 0.8
+    acc = 0.80
     Model = SimpleNet3().to(device)
     # Model = MNISTNet().to(device)
-    dataset_path = "data/dataset/multi_1000/"
+    dataset_path = "data/dataset/multi_fuzzy_1000_2/"
+    # dataset_path = "data/dataset/fuzzy_1000_1/"
     # data_num_list = [200, 1000]
     # mu_list = [1, 3/4]
-    out_path = "data/result/tuning/multi/4/"
+    out_path = "data/result/tuning/multi/8/"
 
     batch_size_list = [200]
     train_epoch_list = [10]
@@ -31,7 +32,7 @@ def tuning():
     # 0ならFalse, 1ならTrue
     reset_list = [0]
     # 1: loss1, 2: 1-p, 3: p
-    loss_list = [2, 2, 3, 3]
+    loss_list = [1, 1, 2, 2, 3, 3]
 
     # tune_list = np.array(list(itertools.product(data_num_list, mu_list, batch_size_list, train_epoch_list, online_epoch_list, sigma_list, reset_list, loss_list)))
     tune_list = np.array(list(itertools.product(batch_size_list, train_epoch_list, online_epoch_list, sigma_list, reset_list, loss_list)))
@@ -70,6 +71,12 @@ def tuning():
         os.makedirs(out_path + str(i) + "/l", exist_ok=True)
 
         # online(acc, Model, dataset_path, out_path + str(i) + "/", i, 
+        #         batch_size=int(batch_size), train_epoch=int(train_epoch),  # 分類器のパラメータ
+        #         online_epoch=int(online_epoch), sigma=sigma,  # オンライン予測のパラメータ
+        #         reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類
+        #         )
+
+        # online_check(acc, Model, dataset_path, out_path + str(i) + "/", i, 
         #         batch_size=int(batch_size), train_epoch=int(train_epoch),  # 分類器のパラメータ
         #         online_epoch=int(online_epoch), sigma=sigma,  # オンライン予測のパラメータ
         #         reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類

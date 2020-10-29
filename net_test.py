@@ -9,7 +9,10 @@ import numpy as np
 import random
 from tqdm import tqdm
 from time import time
-from model import SimpleNet2
+
+import dataset
+from model import SimpleNet2, SimpleNet2_2, SimpleNet2_3
+from visual import visualization
 
 def init_weights(m):
     if type(m) == nn.Linear:
@@ -18,19 +21,24 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_prototype = SimpleNet2().to(device)    
+model_prototype = SimpleNet2_3().to(device)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model_prototype.parameters(), lr=10**(-2))    
 
-def net_test(n_epoch, dataloader, optimizer, criterion):
+def net_test(n_epoch, dataloader):
 
     # ネットワークの重みを初期化
     model_prototype.apply(init_weights)
 
     model_prototype.train()
     #scheduler.step()
-    correct = 0
-    total = 0
+    # correct = 0
+    # total = 0
 
     for i in range(n_epoch):
+
+        correct = 0
+        total = 0
  
         for step, (images, labels) in enumerate((dataloader), 1):
 
@@ -42,9 +50,20 @@ def net_test(n_epoch, dataloader, optimizer, criterion):
             loss.backward()
             optimizer.step()
 
-            if i == n_epoch-1:
-                _, predicted = torch.max(outputs.data, 1)
-                correct += (predicted == labels).sum().item()
-                total += labels.size(0)
+            # if i == n_epoch-1:
+            #     _, predicted = torch.max(outputs.data, 1)
+            #     correct += (predicted == labels).sum().item()
+            #     total += labels.size(0)
 
-    return correct/total
+            _, predicted = torch.max(outputs.data, 1)
+            correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+
+        # print(total, correct/total)
+
+    return correct/total, model_prototype
+
+
+# dataset_path = "data/dataset/fuzzy_1000_1/"
+# x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+# print(net_test(50, dataloader_train, Optimizer, Criterion))

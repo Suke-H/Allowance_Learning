@@ -224,13 +224,13 @@ def MNIST_load():
     test_y = np.array([test_dataset[i][1] for i in range(10000)])
 
     # 0と1の画像だけにする
-    train_indices = np.where((train_y == 7) | (train_y == 1))
-    train_x, train_y = train_x[train_indices], train_y[train_indices]
-    train_y = np.where(train_y == 7, 0, train_y)
+    # train_indices = np.where((train_y == 7) | (train_y == 1))
+    # train_x, train_y = train_x[train_indices], train_y[train_indices]
+    # train_y = np.where(train_y == 7, 0, train_y)
 
-    test_indices = np.where((test_y == 7) | (test_y == 1))
-    test_x, test_y = test_x[test_indices], test_y[test_indices]
-    test_y = np.where(test_y == 7, 0, test_y)
+    # test_indices = np.where((test_y == 7) | (test_y == 1))
+    # test_x, test_y = test_x[test_indices], test_y[test_indices]
+    # test_y = np.where(test_y == 7, 0, test_y)
 
     # datasetオブジェクト作成
     train_x_tensor = torch.Tensor(train_x).to(device)

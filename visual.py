@@ -207,62 +207,6 @@ def visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_ste
 
     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
-# def visualize_multi_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
-#     """
-#     データをどのように斟酌したか可視化
-#     各データの位置・ラベル(改変済み)・損失を同時にプロット
-
-#     Attribute
-#     x, y: データ(訓練データ等), 正解ラベル(改変済み)
-#     loss: 各データの損失
-
-#     """
-#     n = len(x)
-
-#     # color-map
-#     cm = plt.get_cmap(cmap_type, color_step)
-
-#     # lossを正規化(min ~ max -> 0 ~ 1)
-#     loss_max, loss_min = np.max(loss), np.min(loss)
-
-#     if loss_min != loss_max:
-#         loss = (loss - loss_min) / (loss_max - loss_min)
-
-#     # lossを(0, 1, ..., color_step-1)の離散値に変換
-#     loss_digit = (loss // (1 / color_step)).astype(np.int)
-
-#     # loss_digitの値がcolor_stepのものがあればcolor_step-1に置き換え
-#     loss_digit = np.where(loss_digit == color_step, color_step-1, loss_digit)
-
-#     # 
-#     index_0 = np.where(true_y == 0)
-#     index_1 = np.where(true_y == 1)
-#     index_2 = np.where(true_y == 2)
-#     index_3 = np.where(true_y == 3)
-
-#     # (改変前)label 0
-#     ax1.scatter(x[index_0, 0], x[index_0, 1], marker='o', color=cm(loss[index_0]), zorder=2)
-#     # (改変前)label 1
-#     ax1.scatter(x[index_1, 0], x[index_1, 1], marker='x', color=cm(loss[index_1]), zorder=2)
-#     # (改変前)label 2
-#     ax1.scatter(x[index_2, 0], x[index_2, 1], marker='^', color=cm(loss[index_2]), zorder=2)
-#     # (改変前)label 3
-#     ax1.scatter(x[index_3, 0], x[index_3, 1], marker='x', color=cm(loss[index_3]), zorder=2)
-
-#     # ax1.set_title("round: {}".format(epoch))
-
-#     # 凡例の表示
-#     ax1.legend(markerscale=3, fontsize=14)
-
-#     # color-barを表示
-#     gradient = np.linspace(0, 1, cm.N)
-#     gradient_array = np.vstack((gradient, gradient))
-    
-#     ax2.imshow(gradient_array, aspect='auto', cmap=cm)
-#     ax2.set_axis_off()
-
-#     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
-
 def visualize_allowance_simple(ax1, ax2, x, y, true_y, loss, epoch, vis_type, color_step=100, cmap_type="jet"):
     """
     データをどのように斟酌したか可視化
@@ -299,11 +243,11 @@ def visualize_allowance_simple(ax1, ax2, x, y, true_y, loss, epoch, vis_type, co
     # ax1.legend(markerscale=3, fontsize=14)
 
     # color-barを表示
-    gradient = np.linspace(0, 1, cm.N)
-    gradient_array = np.vstack((gradient, gradient))
+    # gradient = np.linspace(0, 1, cm.N)
+    # gradient_array = np.vstack((gradient, gradient))
     
-    ax2.imshow(gradient_array, aspect='auto', cmap=cm)
-    ax2.set_axis_off()
+    # ax2.imshow(gradient_array, aspect='auto', cmap=cm)
+    # ax2.set_axis_off()
 
     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
@@ -322,43 +266,16 @@ def visualize_allowance_simple_multi(ax1, ax2, x, y, true_y, loss, epoch, vis_ty
     # color-map
     cm = plt.get_cmap(cmap_type, color_step)
 
-    # print(y)
-    # print(true_y)
-
-    # 場合分け
-    # index_0_kaihen = np.where((true_y == 0) & (true_y ^ y == 1))
-    # index_1_kaihen = np.where((true_y == 1) & (true_y ^ y == 1))
-    # index_2_kaihen = np.where((true_y == 2) & (true_y ^ y == 1))
-    # index_3_kaihen = np.where((true_y == 3) & (true_y ^ y == 1))
-
-    # index_0 = np.where((true_y == 0) & (true_y ^ y == 0))
-    # index_1 = np.where((true_y == 1) & (true_y ^ y == 0))
-    # index_2 = np.where((true_y == 2) & (true_y ^ y == 0))
-    # index_3 = np.where((true_y == 3) & (true_y ^ y == 0))
-
-    # index_0_kaihen = np.where((true_y == 0) & (true_y != y))
-    # index_1_kaihen = np.where((true_y == 1) & (true_y != y))
-    # index_2_kaihen = np.where((true_y == 2) & (true_y != y))
-    # index_3_kaihen = np.where((true_y == 3) & (true_y != y))
-
     index_0_kaihen = np.where((y == 0) & (true_y != y))
     index_1_kaihen = np.where((y == 1) & (true_y != y))
     index_2_kaihen = np.where((y == 2) & (true_y != y))
     index_3_kaihen = np.where((y == 3) & (true_y != y))
 
-    # index_0 = np.where((true_y == 0) & (true_y == y))
-    # index_1 = np.where((true_y == 1) & (true_y == y))
-    # index_2 = np.where((true_y == 2) & (true_y == y))
-    # index_3 = np.where((true_y == 3) & (true_y == y))
-
     index_0 = np.where(true_y == 0)
     index_1 = np.where(true_y == 1)
     index_2 = np.where(true_y == 2)
     index_3 = np.where(true_y == 3)
-
-    # print(index_0_kaihen[0].shape, index_1_kaihen[0].shape, index_2_kaihen[0].shape, index_3_kaihen[0].shape, 
-    # index_0[0].shape, index_1[0].shape, index_2[0].shape, index_3[0].shape)
-
+    
     # (改変前)label 0
     ax1.scatter(x[index_0, 0], x[index_0, 1], marker='o', color='r', zorder=2)
     # (改変前)label 1
@@ -383,11 +300,11 @@ def visualize_allowance_simple_multi(ax1, ax2, x, y, true_y, loss, epoch, vis_ty
     # ax1.legend(markerscale=3, fontsize=14)
 
     # color-barを表示
-    gradient = np.linspace(0, 1, cm.N)
-    gradient_array = np.vstack((gradient, gradient))
+    # gradient = np.linspace(0, 1, cm.N)
+    # gradient_array = np.vstack((gradient, gradient))
     
-    ax2.imshow(gradient_array, aspect='auto', cmap=cm)
-    ax2.set_axis_off()
+    # ax2.imshow(gradient_array, aspect='auto', cmap=cm)
+    # ax2.set_axis_off()
 
     ax2.set_title("cumulative loss at {}th round".format(epoch), fontsize=18)
 
@@ -520,7 +437,6 @@ def visualization(net, x, y, true_y, loss, epoch, vis_type, path):
     # 斟酌の可視化
     # visualize_allowance(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
     visualize_allowance_simple(ax1, ax2, x, y, true_y, loss, epoch, vis_type)
-
 
     # plt.show()
     plt.savefig(path + str(epoch) + ".png")

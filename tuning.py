@@ -148,19 +148,19 @@ def tuningMNIST():
     acc = 0.8
     # Model = SimpleNet2().to(device)
     Model = MNISTNet().to(device)
-    out_path = "data/result/tuning/multi_MNIST/1/"
+    out_path = "data/result/tuning/bag_check/test/"
 
     dataset_set = dataset.MNIST_load()
 
     batch_size_list = [200]
     train_epoch_list = [10]
-    online_epoch_list = [50]
+    online_epoch_list = [1]
     sigma_list = [10**(-4)]
 
     # 0ならFalse, 1ならTrue
     reset_list = [0]
     # 1: loss1, 2: 1-p, 3: p
-    loss_list = [1, 1, 2, 2, 3, 3]
+    loss_list = [3, 2]
 
     tune_list = np.array(list(itertools.product(batch_size_list, train_epoch_list, online_epoch_list, sigma_list, reset_list, loss_list)))
     df = pd.DataFrame(data=tune_list, columns=['batch_size', 'train_epoch', 'online_epoch', 'sigma', 'reset', 'loss'])
@@ -192,18 +192,18 @@ def tuningMNIST():
 
         os.makedirs(out_path + str(i), exist_ok=True)
 
-        # online_MNIST(acc, Model, dataset_set, out_path, i,
-        #         batch_size=int(batch_size), train_epoch=int(train_epoch),  # 分類器のパラメータ
-        #         online_epoch=int(online_epoch), sigma=sigma,  # オンライン予測のパラメータ
-        #         reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類
-        #         )
-
-        online_multi_MNIST(acc, Model, dataset_set, out_path, i,
+        online_MNIST(acc, Model, dataset_set, out_path, i,
                 batch_size=int(batch_size), train_epoch=int(train_epoch),  # 分類器のパラメータ
                 online_epoch=int(online_epoch), sigma=sigma,  # オンライン予測のパラメータ
                 reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類
                 )
 
-tuning()
+        # online_multi_MNIST(acc, Model, dataset_set, out_path, i,
+        #         batch_size=int(batch_size), train_epoch=int(train_epoch),  # 分類器のパラメータ
+        #         online_epoch=int(online_epoch), sigma=sigma,  # オンライン予測のパラメータ
+        #         reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類
+        #         )
+
+# tuning()
 # tuning2()
-# tuningMNIST()
+tuningMNIST()

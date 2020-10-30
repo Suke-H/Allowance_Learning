@@ -49,6 +49,12 @@ def softmax2(Llist):
     y = exp_x / np.array([np.sum(exp_x,axis=1)]).T    
     return y
 
+def softmax3(Llist, labels):
+    exp_x = np.exp(Llist)    
+    y = exp_x / np.array([np.sum(exp_x,axis=1)]).T
+    arr = [i for i in range(len(labels))]
+    return y[arr, labels]
+
 def cal_loss(model, dataloader, loss_type):
     model.eval()
     correct = 0
@@ -61,8 +67,6 @@ def cal_loss(model, dataloader, loss_type):
             labelinf = np.zeros(len(labels))
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
-
-            print(outputs.shape)
            
             _, predicted = torch.max(outputs.data, 1)
             
@@ -100,6 +104,7 @@ def cal_loss2(model, dataloader, loss_type):
     with torch.no_grad():
 
         p_list = []
+        new_p_list = []
         # クラス数
         p_class_list = np.empty((0, 10))
         
@@ -114,6 +119,9 @@ def cal_loss2(model, dataloader, loss_type):
             p = softmax([list(map(float,i)) for i in list(outputs)])      
             p_list.extend(p)
 
+            new_p = softmax3([list(map(float,i)) for i in list(outputs)], labels.to('cpu').detach().numpy().copy())
+            new_p_list.extend(new_p)    
+
             p_class = softmax2([list(map(float,i)) for i in list(outputs)])
             p_class_list = np.append(p_class_list, p_class, axis=0)
             prelist = list(map(int,predicted))
@@ -126,8 +134,6 @@ def cal_loss2(model, dataloader, loss_type):
 
         train_acc = len(np.where(np.array(label_RightorWrong)==1)[0])/len(label_RightorWrong)
 
-        print(p_list.shape)
-
         if loss_type == "loss1":
             loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
 
@@ -135,7 +141,8 @@ def cal_loss2(model, dataloader, loss_type):
             loss_list = np.array(p_list)
 
         elif loss_type == "1-p":
-            loss_list = 1 - np.array(p_list)
+            # loss_list = 1 - np.array(p_list)
+            loss_list = np.array(new_p_list)
     
     return np.array(loss_list), np.array(p_class_list), train_acc
 
@@ -236,9 +243,6 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
 
         # 損失を返す
         loss_list, p_list, train_acc_change = cal_loss(Model, dataloader_fliped, loss_type)
-
-        print(loss_list.shape)
-        aaaaaaaa = input()
 
         # 累積損失
         cumulative_loss = cumulative_loss + loss_list

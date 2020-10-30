@@ -415,6 +415,7 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     # 入力データをロード
     # x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
     x_train, y_train, dataloader_train, dataloader_test, train_dataset = dataset_set
+    
 
     # ネットワークの重みを初期化
     Model.apply(init_weights)

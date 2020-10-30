@@ -486,7 +486,7 @@ def display30(dataset, indices, tune_epoch, out_path):
         plt.title(title, fontsize=10)    #タイトルを付ける
         plt.tick_params(color='white')      #メモリを消す
         plt.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
-        plt.imshow(dataset[idx][0].reshape(28,28), cmap="gray")   #図を入れ込む
+        plt.imshow(dataset[idx][0].to('cpu').detach().numpy().copy().reshape(28,28), cmap="gray")   #図を入れ込む
 
     #図が重ならないようにする
     plt.tight_layout()

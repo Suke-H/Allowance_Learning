@@ -317,4 +317,6 @@ def multi_fuzzy_dataset(n, mu):
 if __name__ == '__main__':
     # make_artificial_dataset("data/dataset/fuzzy_1000_1/", fuzzy_dataset)
     # make_artificial_dataset("data/dataset/multi_1000/", multi_dataset)
-    make_artificial_dataset("data/dataset/multi_fuzzy_1000_2/", multi_fuzzy_dataset)
+    # make_artificial_dataset("data/dataset/multi_fuzzy_1000_2/", multi_fuzzy_dataset)
+
+    dataset_set = dataset.MNIST_load()

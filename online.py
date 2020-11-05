@@ -12,7 +12,7 @@ from time import time
 
 import dataset
 import model
-from visual import visualization, acc_plot, acc_plot2, init_visual, visualize_weights, display30, tSNE, visualization_multi
+from visual import visualization, acc_plot, acc_plot2, init_visual, visualize_weights, display30, tSNE, tSNE2, visualization_multi
 from net_test import net_test 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -415,7 +415,7 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     # 入力データをロード
     # x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
     x_train, y_train, dataloader_train, dataloader_test, train_dataset = dataset_set
-    
+
 
     # ネットワークの重みを初期化
     Model.apply(init_weights)
@@ -757,3 +757,4 @@ def online_multi_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
 
     # tSNEで可視化
     tSNE(x_train, y_train, xt, tune_epoch, out_path)
+    tSNE2(x_train, y_train, xt, tune_epoch, out_path)

@@ -148,7 +148,7 @@ def tuningMNIST():
     acc = 0.8
     # Model = SimpleNet2().to(device)
     Model = MNISTNet().to(device)
-    out_path = "data/result/tuning/bag_check/test2/"
+    out_path = "data/result/tuning/loss_change_MNIST/1/"
 
     dataset_set = dataset.MNIST_load()
     # x_train, y_train, dataloader_train, dataloader_test, train_dataset = dataset_set
@@ -162,7 +162,7 @@ def tuningMNIST():
     # 0ならFalse, 1ならTrue
     reset_list = [0]
     # 1: loss1, 2: 1-p, 3: p
-    loss_list = [2,2,3,3]
+    loss_list = [2, 3]
 
     tune_list = np.array(list(itertools.product(batch_size_list, train_epoch_list, online_epoch_list, sigma_list, reset_list, loss_list)))
     df = pd.DataFrame(data=tune_list, columns=['batch_size', 'train_epoch', 'online_epoch', 'sigma', 'reset', 'loss'])

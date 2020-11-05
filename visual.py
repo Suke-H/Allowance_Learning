@@ -525,3 +525,59 @@ def tSNE(x, t, k_index, tune_epoch, out_path):
     #保存
     plt.savefig(out_path + "tSNE_" + str(tune_epoch) + ".png")
     plt.close()
+
+def and_index(index_1, index_2):
+    return list(filter(lambda x: x in index_2, index_1))
+
+def tSNE2(x, t, k_index, tune_epoch, out_path):
+    """
+    各ラベルごとにtSNE
+    """
+
+    # for i in range(10):
+    #     label_index = np.where(t == i)[0]
+    #     tSNE_part_by_label(x, t, i, label_index, k_index, tune_epoch, out_path)
+
+    label_index = np.where((t == 1) | (t == 7))[0]
+    tSNE_part_by_label(x, t, 17, label_index, k_index, tune_epoch, out_path)
+
+def tSNE_part_by_label(x, t, label, label_index, k_index, tune_epoch, out_path):
+
+    n = len(x)
+
+    # reshape
+    x = x.reshape(n, 28*28)
+
+    # 改変ラベル　かつ　指定したlabelの画像を抽出
+    change_index = and_index(k_index, label_index)
+
+    # 改変ラベルを1000個選択
+    if len(change_index) > 1000:
+        change_index = np.random.choice(change_index, 1000, replace=False)
+    x_change = x[change_index]
+    t_change = t[change_index]
+
+    # tSNE
+    x_change_reduced = TSNE(n_components=2, random_state=0).fit_transform(x_change)
+
+    # 改変ラベル以外　かつ　指定したlabelの画像を抽出
+    else_index = np.delete(np.array([i for i in range(n)]), k_index)
+    else_index = and_index(else_index, label_index)
+
+    # 改変ラベル以外を2000個選択
+    if len(else_index) > 2000:
+        else_index = np.random.choice(else_index, 2000, replace=False)
+    x_else = x[else_index]
+    t_else = t[else_index]
+
+    # tSNE
+    x_else_reduced = TSNE(n_components=2, random_state=0).fit_transform(x_else)
+
+    # 描画
+    plt.scatter(x_change_reduced[:, 0], x_change_reduced[:, 1], c=t_change, marker="x")
+    plt.scatter(x_else_reduced[:, 0], x_else_reduced[:, 1], c=t_else, marker=".")
+    plt.colorbar()
+
+    #保存
+    plt.savefig(out_path + "tSNE_" + str(tune_epoch) + "_label" + str(label) + ".png")
+    plt.close()

@@ -25,7 +25,13 @@ class SimpleNet2(torch.nn.Module):
         self.fc6 = torch.nn.Linear(20, 2)
  
     def forward(self, x):
+        # print(x.dtype)
+        # print(x.shape)
+        # print(x)
         x = F.relu(self.fc1(x))
+        # print(x.dtype)
+        # print(x.shape)
+        # print(x)
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))

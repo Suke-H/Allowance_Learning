@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data as data
-#import torchvision.models as models
 import tensorflow as tf
 import numpy as np
 import random
@@ -82,8 +81,6 @@ def cal_loss(model, dataloader, loss_type):
             label_RightorWrong.extend(labelinf)
 
         train_acc = len(np.where(np.array(label_RightorWrong)==1)[0])/len(label_RightorWrong)
-
-        print(len(p_list))
 
         if loss_type == "loss1":
             loss_list = (1 - np.array(label_RightorWrong)*np.array(p_list))/2
@@ -169,16 +166,17 @@ def init_weights(m):
         torch.nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
-def online(acc, Model, dataset_path, out_path, tune_epoch, 
+def online_binary(acc, Model, dataset_tuple, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
-            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            n_round = 50, sigma=10**(-5), # オンライン予測のパラメータ
             reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
             ):
     
     torch.manual_seed(1)
 
     # 入力データをロード
-    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset_tuple
+    # x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
     # x_train, y_train, dataloader_train, dataloader_test = dataset.make_and_load_artifical_dataset(data_num, mu)
 
     # 入力データを可視化
@@ -192,7 +190,7 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     # k: 改変するデータ数
     k = int(n * (1-acc))
     # eta: 今回固定
-    eta = np.sqrt(8*np.log(n)/online_epoch)
+    eta = np.sqrt(8*np.log(n)/n_round)
 
     # パラメータ
     lr = 10**(-2)
@@ -217,8 +215,8 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
     # データのインデックスから損失の小さいtop-kを順に並べたもの
     xt = np.array(random.sample(range(0,n),k=k))
     #============================================
-        
-    for epoch in range(1, online_epoch+1):
+
+    for epoch in range(1, n_round+1):
 
         start = time()
 
@@ -283,7 +281,7 @@ def online(acc, Model, dataset_path, out_path, tune_epoch,
 
 def online_check(acc, Model, dataset_path, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
-            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            n_round = 50, sigma=10**(-5), # オンライン予測のパラメータ
             reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
             ):
     
@@ -304,7 +302,7 @@ def online_check(acc, Model, dataset_path, out_path, tune_epoch,
     # k: 改変するデータ数
     k = int(n * (1-acc))
     # eta: 今回固定
-    eta = np.sqrt(8*np.log(n)/online_epoch)
+    eta = np.sqrt(8*np.log(n)/n_round)
 
     # パラメータ
     lr = 10**(-2)
@@ -333,7 +331,7 @@ def online_check(acc, Model, dataset_path, out_path, tune_epoch,
     xt = np.array(random.sample(range(0,n),k=k))
     #============================================
         
-    for epoch in range(1, online_epoch+1):
+    for epoch in range(1, n_round+1):
 
         start = time()
 
@@ -406,7 +404,7 @@ def online_check(acc, Model, dataset_path, out_path, tune_epoch,
 
 def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
-            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            n_round = 50, sigma=10**(-5), # オンライン予測のパラメータ
             reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
             ):
     
@@ -416,7 +414,6 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     # x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.load_artifical_dataset(dataset_path)
     x_train, y_train, dataloader_train, dataloader_test, train_dataset = dataset_set
 
-
     # ネットワークの重みを初期化
     Model.apply(init_weights)
 
@@ -425,7 +422,7 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     # k: 改変するデータ数
     k = int(n * (1-acc))
     # eta: 今回固定
-    eta = np.sqrt(8*np.log(n)/online_epoch)
+    eta = np.sqrt(8*np.log(n)/n_round)
 
     # パラメータ
     lr = 10**(-2)
@@ -453,7 +450,7 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     #============================================
         
     if algorithm == "FPL":
-        for epoch in range(1, online_epoch+1):
+        for epoch in range(1, n_round+1):
 
             start = time()
 
@@ -519,7 +516,7 @@ def online_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
 
 def online_multi(acc, Model, dataset_path, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
-            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            n_round = 50, sigma=10**(-5), # オンライン予測のパラメータ
             reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
             ):
 
@@ -541,7 +538,7 @@ def online_multi(acc, Model, dataset_path, out_path, tune_epoch,
     k = round(n * (1-acc))
     print(k)
     # eta: 今回固定
-    eta = np.sqrt(8*np.log(n)/online_epoch)
+    eta = np.sqrt(8*np.log(n)/n_round)
 
     # パラメータ
     lr = 10**(-2)
@@ -571,7 +568,7 @@ def online_multi(acc, Model, dataset_path, out_path, tune_epoch,
 
     #============================================
         
-    for epoch in range(1, online_epoch+1):
+    for epoch in range(1, n_round+1):
 
         # print("\n--- Epoch : %2d ---" % epoch)
         xt = np.sort(xt)
@@ -638,7 +635,7 @@ def online_multi(acc, Model, dataset_path, out_path, tune_epoch,
 
 def online_multi_MNIST(acc, Model, dataset_set, out_path, tune_epoch, 
             batch_size = 10, train_epoch = 10,  # 分類器のパラメータ
-            online_epoch = 50, sigma=10**(-5), # オンライン予測のパラメータ
+            n_round = 50, sigma=10**(-5), # オンライン予測のパラメータ
             reset_flag=False, loss_type = "loss1" # 学習リセットするか、損失の種類
             ):
     
@@ -657,7 +654,7 @@ def online_multi_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     k = round(n * (1-acc))
     print(k)
     # eta: 今回固定
-    eta = np.sqrt(8*np.log(n)/online_epoch)
+    eta = np.sqrt(8*np.log(n)/n_round)
 
     # パラメータ
     lr = 10**(-2)
@@ -686,10 +683,12 @@ def online_multi_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
     xt = np.argsort(loss_list)[:k]
 
     #============================================
-        
-    for epoch in range(1, online_epoch+1):
 
-        print("--- Epoch : %2d ---" % epoch)
+    x_train = torch.from_numpy(x_train)
+        
+    for epoch in range(1, n_round+1):
+
+        print("--- Round : %2d ---" % epoch)
         xt = np.sort(xt)
 
         # # 損失の小さいtop-kをひっくり返す
@@ -703,9 +702,9 @@ def online_multi_MNIST(acc, Model, dataset_set, out_path, tune_epoch,
         p_temp_list = np.copy(p_list)
         p_temp_list[[i for i in range(n)], y_train] = 0
         flip_y_train[xt] = np.argmax(p_temp_list[xt], axis=1)
-        
+
         # dataset, dataloader作成
-        ds_selected = data.TensorDataset(torch.from_numpy(x_train), torch.from_numpy(flip_y_train))
+        ds_selected = data.TensorDataset(x_train, torch.from_numpy(flip_y_train))
         dataloader_fliped = data.DataLoader(dataset=ds_selected, batch_size=batch_size, shuffle=False)
 
         # ネットワークの重みを初期化

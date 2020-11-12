@@ -21,12 +21,11 @@ import dataset
 from online import cal_loss, init_weights
 from visual import visualization, visualize_weights
 
-def fix_train_model(limit_acc, net, dataset_path, data_num, mu, root_path, file_no,
+def stop_algo(limit_acc, net, dataset_tuple, root_path, file_no,
     num_epochs=50, batch_size=10, limit_phase="val", loss_type="p"):
 
     """
-    モデルを訓練
-
+    trainかval accが目標accを超えたら学習を停止するアルゴリズム
     """
 
     # ネットワークの重みを初期化
@@ -40,14 +39,14 @@ def fix_train_model(limit_acc, net, dataset_path, data_num, mu, root_path, file_
     }
 
     # 入力データをロード
-    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset.make_and_load_artifical_dataset(data_num, mu)
+    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset_tuple
 
     dataloaders_dict = {"train": dataloader_train, 
                         "val": dataloader_val, 
                         "test": dataloader_test}
 
     # パラメータ
-    lr = 10**(-5.5)
+    lr = 10**(-2)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=lr)
     n = len(x_train)
@@ -60,6 +59,8 @@ def fix_train_model(limit_acc, net, dataset_path, data_num, mu, root_path, file_
     cumulative_loss = np.zeros(n)
 
     virtual_loss_list = np.empty((0, n))
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # epochのループ
     for epoch in range(num_epochs):
@@ -79,6 +80,8 @@ def fix_train_model(limit_acc, net, dataset_path, data_num, mu, root_path, file_
 
             # データローダーからミニバッチを取り出すループ
             for i, (inputs, labels) in enumerate(dataloaders_dict[phase]):
+
+                inputs, labels = inputs.to(device), labels.to(device)
                 _batch_size = inputs.size(0)
 
                 # optimizerを初期化

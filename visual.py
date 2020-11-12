@@ -90,11 +90,15 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
     # 入力データ
     grid_x = np.array(xy, dtype="float32")
     grid_x = torch.from_numpy(grid_x)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    grid_x = grid_x.to(device)
 
     # 格子点を入力にする
     grid_output = net(grid_x)
     # ラベルを予測
-    _, grid_y = torch.max(grid_output, 1)  
+    _, grid_y = torch.max(grid_output, 1)
+
+    grid_y = grid_y.to('cpu').detach().numpy().copy()
 
     ### 識別関数 可視化
     # グリッドをクラス分け
@@ -103,6 +107,7 @@ def visualize_classify(ax1, net, aabb, grid_num=100):
     label0 = "0"
     label1 = "1"
 
+    grid_x = grid_x.to('cpu').detach().numpy().copy()
     grid0, grid1 = grid_x[index0], grid_x[index1]
 
     ax1.plot(grid0[:, 0], grid0[:, 1],marker=".",linestyle="None",color="palevioletred", label=label0, zorder=1)
@@ -130,11 +135,14 @@ def visualize_multi_classify(ax1, net, aabb, grid_num=100):
     # 入力データ
     grid_x = np.array(xy, dtype="float32")
     grid_x = torch.from_numpy(grid_x)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    grid_x = grid_x.to(device)
 
     # 格子点を入力にする
     grid_output = net(grid_x)
     # ラベルを予測
-    _, grid_y = torch.max(grid_output, 1)  
+    _, grid_y = torch.max(grid_output.data, 1)
+    grid_y = grid_y.to('cpu').detach().numpy().copy()
 
     ### 識別関数 可視化
     # グリッドをクラス分け
@@ -146,6 +154,9 @@ def visualize_multi_classify(ax1, net, aabb, grid_num=100):
     label1 = "1"
     label2 = "2"
     label3 = "3"
+
+    grid_x = grid_x.to('cpu').detach().numpy().copy()
+    grid0, grid1 = grid_x[index0], grid_x[index1]
 
     grid0, grid1, grid2, grid3 = grid_x[index0], grid_x[index1], grid_x[index2], grid_x[index3]
 

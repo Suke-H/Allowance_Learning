@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from time import time
 
-from online import online_binary, online_MNIST, online_multi, online_check, online_multi_MNIST
+from online import online
 from model import SimpleNet2, MNISTNet, SimpleNet3
 from stop_algo import stop_algo
 import dataset
@@ -19,18 +19,24 @@ class algorithm_set():
     def __init__(self, algo_type):
         self.algo_type = algo_type
 
-def dataset_load(data_type, dataset_path=None):
+class dataset_load_set():
     """
     データセットの読み込み
     """
 
-    if data_type == "artifact":
-        return dataset.load_artifical_dataset(dataset_path)
+    def __init__(self, data_type, data_path=None):
+        self.data_type = data_type
+        self.data_path = data_path
 
-    elif data_type == "mnist":
-        return dataset.MNIST_load()
+    def load(self):
+        if self.data_type == "artifact":
+            return dataset.load_artifical_dataset(self.data_path)
 
-def write_stage_log(stage, batch_size=None, epoch=None, n_round=None, sigma=None, reset_flag=None, loss_type=None, limit_phase=None):
+        elif self.data_type == "mnist":
+            print("Now Datset Loading...")
+            return dataset.MNIST_load()
+
+def write_stage_log(stage, batch_size=None, epoch=None, n_rounds=None, sigma=None, reset_flag=None, loss_type=None, limit_phase=None):
     """
     各ステージでログ表示
     flag関係の処理も同時に行う
@@ -44,8 +50,8 @@ def write_stage_log(stage, batch_size=None, epoch=None, n_round=None, sigma=None
         print("batch_size: {}".format(batch_size))
     if epoch:    
         print("epoch: {}".format(epoch))
-    if n_round:
-        print("round: {}".format(n_round))
+    if n_rounds:
+        print("round: {}".format(n_rounds))
     if sigma:
         print("sigma: {}".format(sigma))
 
@@ -79,50 +85,47 @@ def write_stage_log(stage, batch_size=None, epoch=None, n_round=None, sigma=None
         return params
 
 
-def tuning(acc, Model, out_path, dataset_tuple, algo):
+def tuning(acc, Model, out_path, data_set, algo):
     """
     パラメータチューニング
     """
 
-    # オンラインアルゴリズム 
-    if algo.algo_type in ["online_binary", "online_multi"]:
+    # データセット
+    data_type = data_set.data_type
+    dataset_tuple = data_set.load()
+    print("data_type: {}".format(data_type))
+
+    # 分類タイプ
+    classfy_type = algo.classfy_type
+    print("classfy_type: {}".format(classfy_type))
+
+    ### オンラインアルゴリズム ###
+    if algo.algo_type == "online":
 
         # パラメータをcsvで出力
         tune_list = np.array(list(itertools.product(algo.batch_size_list, algo.epoch_list, algo.round_list, algo.sigma_list, algo.reset_list, algo.loss_list)))
         df = pd.DataFrame(data=tune_list, columns=['batch_size', 'epoch', 'round', 'sigma', 'reset', 'loss'])
         df.to_csv(out_path+"para.txt")
 
-        for i, (batch_size, epoch, n_round, sigma, reset_flag, loss_type) in enumerate(tune_list, 1):
+        for i, (batch_size, epoch, n_rounds, sigma, reset_flag, loss_type) in enumerate(tune_list, 1):
 
             # 各ステージのパラメータをprint出力
-            reset_flag, loss_type = write_stage_log(stage=i, batch_size=batch_size, epoch=epoch, n_round=n_round, sigma=sigma, 
+            reset_flag, loss_type = write_stage_log(stage=i, batch_size=batch_size, epoch=epoch, n_rounds=n_rounds, sigma=sigma, 
                                                     reset_flag=reset_flag, loss_type=loss_type)
 
-            os.makedirs(out_path + str(i) + "/p", exist_ok=True)
             os.makedirs(out_path + str(i) + "/d", exist_ok=True)
-            os.makedirs(out_path + str(i) + "/l", exist_ok=True)
+            # os.makedirs(out_path + str(i) + "/l", exist_ok=True)
+            # os.makedirs(out_path + str(i) + "/p", exist_ok=True)
 
-            # 2クラス分類
-            if algo.algo_type == "online_binary":
-
-                # 実行
-                online_binary(acc, Model, dataset_tuple, out_path + str(i) + "/", i, 
-                        batch_size=int(batch_size), train_epoch=int(epoch),  # 分類器のパラメータ
-                        n_round=int(n_round), sigma=sigma,  # オンライン予測のパラメータ
-                        reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類
-                        )
-
-            # 多クラス分類
-            elif algo.algo_type == "online_multi":
-
-                # 実行
-                online_multi(acc, Model, dataset_tuple, out_path + str(i) + "/", i, 
-                    batch_size=int(batch_size), etrain_poch=int(epoch),  # 分類器のパラメータ
-                    n_round=int(n_round), sigma=sigma,  # オンライン予測のパラメータ
+            # 実行
+            online(acc, Model, dataset_tuple, out_path + str(i) + "/", i,
+                    classfy_type=classfy_type,  data_type=data_type,
+                    batch_size=int(batch_size), n_epochs=int(epoch),  # 分類器のパラメータ
+                    n_rounds=int(n_rounds), sigma=sigma,  # オンライン予測のパラメータ
                     reset_flag=reset_flag, loss_type=loss_type # 学習リセットするか、損失の種類
                     )
 
-    # ナイーブアルゴリズム
+    ### ナイーブアルゴリズム ###
     elif algo.algo_type == "naive":
 
         # パラメータをcsvで出力
@@ -132,6 +135,7 @@ def tuning(acc, Model, out_path, dataset_tuple, algo):
 
         for i, (batch_size, epoch, limit_phase, loss_type) in enumerate(tune_list, 1):
 
+            # 各ステージのパラメータをprint出力
             loss_type, limit_phase = write_stage_log(stage=i, batch_size=batch_size, epoch=epoch, 
                                                     limit_phase=limit_phase, loss_type=loss_type)
 
@@ -143,7 +147,7 @@ def tuning(acc, Model, out_path, dataset_tuple, algo):
             stop_algo(acc, Model, dataset_tuple, out_path + str(i) + "/", i,
                 num_epochs=int(epoch), batch_size=int(batch_size), limit_phase=limit_phase, loss_type=loss_type)
 
-    # 敵対アルゴリズム 
+    ### 敵対アルゴリズム ###
     elif algo.algo_type == "adversary":
 
         # パラメータをcsvで出力
@@ -156,13 +160,14 @@ def tuning(acc, Model, out_path, dataset_tuple, algo):
             # 各ステージのパラメータをprint出力
             write_stage_log(stage=i, batch_size=batch_size, epoch=epoch)
 
-            os.makedirs(out_path + str(i) + "/p", exist_ok=True)
+            # os.makedirs(out_path + str(i) + "/p", exist_ok=True)
             os.makedirs(out_path + str(i) + "/d", exist_ok=True)
-            os.makedirs(out_path + str(i) + "/l", exist_ok=True)
+            # os.makedirs(out_path + str(i) + "/l", exist_ok=True)
 
             # 実行
             adversary(acc, Model, dataset_tuple, out_path + str(i) + "/", i, 
-                    batch_size=int(batch_size), train_epoch=int(epoch),  # 分類器のパラメータ
+                    classfy_type=classfy_type, 
+                    batch_size=int(batch_size), n_epochs=int(epoch),  # 分類器のパラメータ
                     )
     
 if __name__ == '__main__':
@@ -170,17 +175,18 @@ if __name__ == '__main__':
     # 共通設定
     acc = 0.8
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    Model = SimpleNet2().to(device)
     out_path = "data/result/tuning/bag_check/test4/"
 
     # データセットの設定
-    # artifact, mnist
-    dataset_tuple = dataset_load(data_type="artifact", dataset_path="data/dataset/fuzzy_1000_1/")
+    # データセットの種類(data_type)：artifact, mnist
+    # data_set = dataset_load_set(data_type = "artifact", data_path="data/dataset/fuzzy_1000_1/")
+    data_set = dataset_load_set(data_type = "artifact", data_path="data/dataset/multi_1000/")
+    # data_set = dataset_load_set(data_type = "mnist")
     
     # アルゴリズムとパラメータの設定
 
-    # online_binary, online_multi
-    # algo = algorithm_set("online_binary")
+    # online
+    # algo = algorithm_set("online")
     # algo.batch_size_list = [200]
     # algo.epoch_list = [10]
     # algo.round_list = [50]
@@ -188,7 +194,7 @@ if __name__ == '__main__':
     # # 0ならFalse, 1ならTrue
     # algo.reset_list = [0]
     # # 1: loss1, 2: 1-p, 3: p
-    # algo.loss_list = [2, 2, 3, 3]
+    # algo.loss_list = [2, 3]
 
     # naive
     # algo = algorithm_set("naive")
@@ -203,10 +209,22 @@ if __name__ == '__main__':
     algo = algorithm_set("adversary")
     algo.batch_size_list = [200]
     algo.epoch_list = [50]
+
+    # 共通設定
+    # 分類タイプ(classfy_type)：binary, multi
+    # algo.classfy_type = "binary"
+    algo.classfy_type = "multi"
+
+    # モデル
+    if data_set.data_type == "artifact" and algo.classfy_type == "binary":
+        Model = SimpleNet2().to(device)
+
+    elif data_set.data_type == "artifact" and algo.classfy_type == "multi":
+        Model = SimpleNet3().to(device)
+
+    elif data_set.data_type == "mnist":
+        Model = MNISTNet().to(device)
     
     # 開始
-    tuning2(acc, Model, out_path, dataset_tuple, algo)
-
-
-
+    tuning(acc, Model, out_path, data_set, algo)
     

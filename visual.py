@@ -440,6 +440,7 @@ def visualization(net, x, y, true_y, loss, epoch, vis_type, path):
     ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
 
     # aabb(点を覆うxy軸平行な長方形)の座標
+    x = x.to('cpu').detach().numpy().copy()
     aabb = [np.min(x[:, 0]), np.max(x[:, 0]), np.min(x[:, 1]), np.max(x[:, 1])]
 
     # 識別関数の可視化
@@ -472,6 +473,7 @@ def visualization_multi(net, x, y, true_y, loss, epoch, vis_type, path):
     ax2 = fig.add_axes((0.1,0.1,0.8,0.05))
 
     # aabb(点を覆うxy軸平行な長方形)の座標
+    x = x.to('cpu').detach().numpy().copy()
     aabb = [np.min(x[:, 0]), np.max(x[:, 0]), np.min(x[:, 1]), np.max(x[:, 1])]
 
     # 識別関数の可視化

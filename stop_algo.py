@@ -18,7 +18,7 @@ import torchvision
 from torchvision import models, transforms
 
 import dataset
-from online import cal_loss, init_weights
+from online import cal_loss_binary, init_weights
 from visual import visualization, visualize_weights
 
 def stop_algo(limit_acc, net, dataset_tuple, root_path, file_no,
@@ -119,7 +119,7 @@ def stop_algo(limit_acc, net, dataset_tuple, root_path, file_no,
                 stop_flag = True
 
         # pを可視化
-        loss_list, p_list, _ = cal_loss(net, dataloader_train, loss_type)
+        loss_list, p_list, _ = cal_loss_binary(net, dataloader_train, loss_type)
 
         # 累積損失
         cumulative_loss = cumulative_loss + loss_list

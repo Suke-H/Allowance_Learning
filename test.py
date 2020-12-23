@@ -1,8 +1,12 @@
-a = b = None
-c = 1
+import torch
 
-if a or b:
-    print("NG")
+a = torch.randn((4,4))
+print(a)
 
-if a or b or c:
-    print("ok")
+b = torch.tensor([[0],[1],[2],[3]])
+print(b)
+
+print(b.reshape(1, 1, 4))
+
+c = a.gather(1, b).squeeze()
+print(c)

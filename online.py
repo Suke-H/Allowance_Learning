@@ -38,21 +38,53 @@ def train(model, dataloader, optimizer, criterion):
 
     # print("Train Acc : %.4f" % (correct/total))
             
-def softmax(Llist):
-    exp_x = np.exp(Llist)    
-    y = exp_x / np.array([np.sum(exp_x,axis=1)]).T    
-    return np.max(y,axis=1)
+# def softmax(Llist):
+#     exp_x = np.exp(Llist)    
+#     y = exp_x / np.array([np.sum(exp_x,axis=1)]).T    
+#     return np.max(y,axis=1)
 
-def softmax2(Llist):
-    exp_x = np.exp(Llist)    
-    y = exp_x / np.array([np.sum(exp_x,axis=1)]).T    
-    return y
+# def softmax2(Llist):
+#     exp_x = np.exp(Llist)    
+#     y = exp_x / np.array([np.sum(exp_x,axis=1)]).T    
+#     return y
 
-def softmax3(Llist, labels):
-    exp_x = np.exp(Llist)    
-    y = exp_x / np.array([np.sum(exp_x,axis=1)]).T
-    arr = [i for i in range(len(labels))]
-    return y[arr, labels]
+# def softmax3(Llist, labels):
+#     exp_x = np.exp(Llist)    
+#     y = exp_x / np.array([np.sum(exp_x,axis=1)]).T
+#     arr = [i for i in range(len(labels))]
+#     return y[arr, labels]
+
+def softmax(outputs):
+    """
+    outputsのクラス内で最大の尤度を返す
+
+    outputs: (batch_size, class)
+    p: (batch_size, )
+    """
+
+    p, _ = torch.max(F.softmax(outputs, dim=1), 1)  
+    return p.to('cpu').detach().numpy().copy()
+
+def softmax2(outputs):
+    """
+    outputsの尤度を返す
+
+    outputs: (batch_size, class)
+    p: (batch_size, class)
+    """
+    p = F.softmax(outputs, dim=1)
+    return p.to('cpu').detach().numpy().copy()
+
+def softmax3(outputs, labels):
+    """
+    outputsから選択したラベルの尤度を返す
+
+    outputs: (batch_size, class)
+    p: (batch_size, )
+    """
+    p = F.softmax(outputs, dim=1)
+    p = p.gather(1, labels.reshape(len(labels), 1)).squeeze()
+    return p.to('cpu').detach().numpy().copy()
 
 def cal_loss_binary(model, dataloader, loss_type):
     model.eval()
@@ -68,8 +100,8 @@ def cal_loss_binary(model, dataloader, loss_type):
             outputs = model(images)
            
             _, predicted = torch.max(outputs.data, 1)
-            
-            p = softmax([list(map(float,i)) for i in list(outputs)])      
+             
+            p = softmax(outputs)
             p_list.extend(p)
             
             prelist = list(map(int,predicted))
@@ -103,8 +135,8 @@ def cal_loss_multi(model, dataloader, loss_type):
         p_list = []
         new_p_list = []
         # クラス数
-        # p_class_list = np.empty((0, 4))
-        p_class_list = np.empty((0, 10))
+        p_class_list = np.empty((0, 4))
+        # p_class_list = np.empty((0, 10))
         
         for step, (images, labels) in enumerate(dataloader, 1):
             
@@ -114,15 +146,18 @@ def cal_loss_multi(model, dataloader, loss_type):
            
             _, predicted = torch.max(outputs.data, 1)
 
-            p = softmax([list(map(float,i)) for i in list(outputs)])      
+            # クラス内で最大の尤度
+            p = softmax(outputs)     
             p_list.extend(p)
 
-            new_p = softmax3([list(map(float,i)) for i in list(outputs)], labels.to('cpu').detach().numpy().copy())
-            new_p_list.extend(new_p)    
-
-            p_class = softmax2([list(map(float,i)) for i in list(outputs)])
-
+            # 尤度
+            p_class = softmax2(outputs)
             p_class_list = np.append(p_class_list, p_class, axis=0)
+
+            # 元の教師ラベルの尤度
+            new_p = softmax3(outputs, labels)
+            new_p_list.extend(new_p)
+
             prelist = list(map(int,predicted))
             lablist = list(map(int,labels))
             
@@ -292,10 +327,6 @@ def online(acc, Model, dataset_set, out_path, stage_no,
             # 多クラス分類
             elif classfy_type == "multi":
                 visualization_multi(Model, x_train, flip_y_train, y_train, virtual_loss, _round, "d", out_path + "d/")
-    
-    print(train_acc_ori_list)
-    print(train_acc_change_list)
-    print(test_acclist)
 
     # 学習曲線をプロット
     acc_plot(train_acc_ori_list, train_acc_change_list, test_acclist, acc, out_path, stage_no)

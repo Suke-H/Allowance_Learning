@@ -151,8 +151,8 @@ def load_artifical_dataset(path):
     test_t = np.load(path + "test_t.npy")
 
     # numpy -> Dataset -> DataLoader
-    ds_prob = data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_t))
-    dataloader_train = data.DataLoader(dataset=ds_prob, batch_size=200, shuffle=False)
+    ds_train = data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_t))
+    dataloader_train = data.DataLoader(dataset=ds_train, batch_size=200, shuffle=False)
 
     ds_val = data.TensorDataset(torch.from_numpy(val_x), torch.from_numpy(val_t))
     dataloader_val = data.DataLoader(dataset=ds_val, batch_size=200, shuffle=False)
@@ -161,7 +161,7 @@ def load_artifical_dataset(path):
     dataloader_test = data.DataLoader(dataset=ds_test, batch_size=200, shuffle=True)
 
     # return dataloader_train, dataloader_val, dataloader_test
-    return train_x, train_t, dataloader_train, dataloader_val, dataloader_test
+    return train_x, train_t, dataloader_train, dataloader_test, ds_train
 
 def make_and_load_artifical_dataset(n, mu):
     # データセット作成

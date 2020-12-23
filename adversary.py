@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from online import train, init_weights, softmax, softmax2
-from visual import visualization_multi
+from visual import visualization_multi, visualization, display30, tSNE, tSNE2
 import dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,8 +50,8 @@ def cal_p_multi(model, dataloader):
         p_list = []
         # new_p_list = []
         # クラス数
-        p_class_list = np.empty((0, 4))
-        # p_class_list = np.empty((0, 10))
+        # p_class_list = np.empty((0, 4))
+        p_class_list = np.empty((0, 10))
         
         for step, (images, labels) in enumerate(dataloader, 1):
             
@@ -105,14 +105,14 @@ def eval(model, dataloader):
     return correct/total, np.array(y)
 
 def adversary(acc, Model, dataset_tuple, out_path, tune_epoch, 
-                classfy_type, 
+                classfy_type,  data_type, # 分類タイプ, データタイプ
                 batch_size=10, n_epochs=10 # 分類器のパラメータ
                 ):
 
     torch.manual_seed(1)
 
     # 入力データをロード
-    x_train, y_train, dataloader_train, dataloader_val, dataloader_test = dataset_tuple
+    x_train, y_train, dataloader_train, dataloader_test, train_dataset = dataset_tuple
     # x_train, y_train, dataloader_train, dataloader_test = dataset.make_and_load_artifical_dataset(data_num, mu)
 
     # 入力データを可視化
@@ -125,8 +125,6 @@ def adversary(acc, Model, dataset_tuple, out_path, tune_epoch,
     n = len(x_train)
     # k: 改変するデータ数
     k = round(n * (1-acc))
-    print(n, k)
-
     # パラメータ
     lr = 10**(-2)
     Criterion = nn.CrossEntropyLoss()
@@ -152,8 +150,6 @@ def adversary(acc, Model, dataset_tuple, out_path, tune_epoch,
     # 推論
     test_acc, _ = eval(Model, dataloader_test)
 
-    print(p_list.shape)
-
     # pが低い上位k個を選択
     # print(np.sort(p_list))
     xt = np.argsort(p_list)[:k]
@@ -174,8 +170,20 @@ def adversary(acc, Model, dataset_tuple, out_path, tune_epoch,
 
     # 可視化
     x_train = torch.from_numpy(x_train).clone()
-    visualization_multi(Model, x_train, y_eval, y_train, 0, tune_epoch, "d", out_path + "d/")
 
-    # train_acclist.append(train_acc)
-    # test_acclist.append(test_acc)
+    # データセットがartifact
+    if data_type == "artifact":
+        if classfy_type == "binary":
+            visualization(Model, x_train, y_eval, y_train, 0, tune_epoch, "d", out_path + "d/")
+        elif classfy_type == "multi":
+            visualization_multi(Model, x_train, y_eval, y_train, 0, tune_epoch, "d", out_path + "d/")
+
+    # データセットがmnist
+    elif data_type == "mnist":
+        # 損失の低かった上位30枚の画像を表示
+        display30(train_dataset, xt[:30], 0, out_path)
+
+        # tSNEで可視化
+        tSNE(x_train, y_train, xt, 0, out_path)
+        tSNE2(x_train, y_train, xt, 0, out_path)
     

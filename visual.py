@@ -401,7 +401,7 @@ def visualize_weights(x_train, loss, round, path):
     plt.savefig(path + "weights" + str(round) + ".png")
     plt.close()
 
-def init_visual(x, y, path):
+def init_visual(x, y, classify_type, path):
     """
     データをどのように斟酌したか可視化
     各データの位置・ラベル(改変済み)・損失を同時にプロット
@@ -413,10 +413,34 @@ def init_visual(x, y, path):
     """
     n = len(x)
 
-    # プロット
-    for i in range(n):
-        plt.plot(x[i, 0], x[i, 1], 'o')
-        plt.annotate(y[i], xy=(x[i, 0], x[i, 1]))
+    # binary
+    if classify_type == "binary":
+    # 場合分け
+
+        index_0 = np.where(y == 0)
+        index_1 = np.where(y == 1)
+
+        # (改変前)label 0
+        plt.scatter(x[index_0, 0], x[index_0, 1], marker='o', color='r', zorder=2)
+        # (改変前)label 1
+        plt.scatter(x[index_1, 0], x[index_1, 1], marker='o', color='b', zorder=2)
+
+    # multi
+    if classify_type == "multi":
+        index_0 = np.where(y == 0)
+        index_1 = np.where(y == 1)
+        index_2 = np.where(y == 2)
+        index_3 = np.where(y == 3)
+    
+        # (改変前)label 0
+        plt.scatter(x[index_0, 0], x[index_0, 1], marker='o', color='r', zorder=2)
+        # (改変前)label 1
+        plt.scatter(x[index_1, 0], x[index_1, 1], marker='o', color='b', zorder=2)
+        # (改変前)label 2
+        plt.scatter(x[index_2, 0], x[index_2, 1], marker='o', color='orange', zorder=2)
+        # (改変前)label 3
+        plt.scatter(x[index_3, 0], x[index_3, 1], marker='o', color='purple', zorder=2)
+
     # plt.show()
     plt.savefig(path + "init.png")
     plt.close()

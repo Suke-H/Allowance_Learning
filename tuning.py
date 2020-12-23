@@ -10,6 +10,7 @@ from model import SimpleNet2, MNISTNet, SimpleNet3
 from stop_algo import stop_algo
 import dataset
 from adversary import adversary
+from visual import init_visual
 
 class algorithm_set():
     """
@@ -33,7 +34,7 @@ class dataset_load_set():
             return dataset.load_artifical_dataset(self.data_path)
 
         elif self.data_type == "mnist":
-            print("Now Datset Loading...")
+            print("Now Dataset Loading...")
             return dataset.MNIST_load()
 
 def write_stage_log(stage, batch_size=None, epoch=None, n_rounds=None, sigma=None, reset_flag=None, loss_type=None, limit_phase=None):
@@ -166,7 +167,7 @@ def tuning(acc, Model, out_path, data_set, algo):
 
             # 実行
             adversary(acc, Model, dataset_tuple, out_path + str(i) + "/", i, 
-                    classfy_type=classfy_type, 
+                    classfy_type=classfy_type, data_type=data_type,
                     batch_size=int(batch_size), n_epochs=int(epoch),  # 分類器のパラメータ
                     )
     
@@ -175,26 +176,27 @@ if __name__ == '__main__':
     # 共通設定
     acc = 0.8
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    out_path = "data/result/tuning/bag_check/test4/"
+    # out_path = "data/result/tuning/algo/adversary/4/"
+    out_path = "data/result/tuning/softmax_test/multi/"
 
     # データセットの設定
     # データセットの種類(data_type)：artifact, mnist
+    data_set = dataset_load_set(data_type = "artifact", data_path="data/dataset/multi_fuzzy_1000_2/")
     # data_set = dataset_load_set(data_type = "artifact", data_path="data/dataset/fuzzy_1000_1/")
-    data_set = dataset_load_set(data_type = "artifact", data_path="data/dataset/multi_1000/")
     # data_set = dataset_load_set(data_type = "mnist")
     
     # アルゴリズムとパラメータの設定
 
     # online
-    # algo = algorithm_set("online")
-    # algo.batch_size_list = [200]
-    # algo.epoch_list = [10]
-    # algo.round_list = [50]
-    # algo.sigma_list = [10**(-4)]
-    # # 0ならFalse, 1ならTrue
-    # algo.reset_list = [0]
-    # # 1: loss1, 2: 1-p, 3: p
-    # algo.loss_list = [2, 3]
+    algo = algorithm_set("online")
+    algo.batch_size_list = [200]
+    algo.epoch_list = [1, 5, 10]
+    algo.round_list = [50]
+    algo.sigma_list = [10**(-4)]
+    # 0ならFalse, 1ならTrue
+    algo.reset_list = [0]
+    # 1: loss1, 2: 1-p, 3: p
+    algo.loss_list = [3]
 
     # naive
     # algo = algorithm_set("naive")
@@ -206,9 +208,9 @@ if __name__ == '__main__':
     # algo.loss_list = [1, 1, 2, 2, 3, 3]
 
     # adversary
-    algo = algorithm_set("adversary")
-    algo.batch_size_list = [200]
-    algo.epoch_list = [50]
+    # algo = algorithm_set("adversary")
+    # algo.batch_size_list = [200]
+    # algo.epoch_list = [50]
 
     # 共通設定
     # 分類タイプ(classfy_type)：binary, multi
@@ -226,5 +228,7 @@ if __name__ == '__main__':
         Model = MNISTNet().to(device)
     
     # 開始
+    x, y, _, _, _ = data_set.load()
+    # init_visual(x, y, algo.classfy_type, out_path)
     tuning(acc, Model, out_path, data_set, algo)
     
